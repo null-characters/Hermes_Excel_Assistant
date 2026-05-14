@@ -4,7 +4,6 @@ File Upload Service - 数据模型
 from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import BaseModel, Field
-import uuid
 import os
 
 
@@ -14,7 +13,7 @@ FILE_EXPIRE_DAYS = int(os.getenv("FILE_EXPIRE_DAYS", "7"))
 
 class FileMetadata(BaseModel):
     """文件元数据模型 - 包含用户绑定"""
-    file_id: str = Field(default_factory=lambda: f"file_{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:8]}")
+    file_id: str = Field(..., description="文件唯一标识，由上传接口生成")
     user_id: str = Field(..., description="WeCom 用户ID，用于归属验证")
     filename: str
     original_filename: str

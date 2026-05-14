@@ -27,12 +27,13 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# CORS 配置
+# CORS 配置 - 生产环境应限制具体域名
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "https://localhost,https://127.0.0.1").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生产环境应限制
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 

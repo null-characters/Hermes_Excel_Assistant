@@ -5,8 +5,8 @@ import os
 import uuid
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Depends
-from fastapi.responses import StreamingResponse, FileResponse
-from typing import Optional
+from fastapi.responses import StreamingResponse
+from urllib.parse import quote
 import io
 import logging
 
@@ -121,7 +121,12 @@ async def download_file(
         )
     
     # 检查过期
-    expires_at = datetime.fromisoformat(metadata.get("expires_at", ""))
+    try:
+        expires_at = datetime.fromisoformat(metadata.get("expires_at", ""))
+    except (ValueError, TypeError):
+        logger.error(f"Invalid expires_at in metadata for file {file_id}")
+        raise HTTPException(status_code=500, detail="文件元数据损坏")
+    
     if datetime.now() > expires_at:
         raise HTTPException(status_code=404, detail="文件已过期")
     
@@ -130,14 +135,14 @@ async def download_file(
     if content is None:
         raise HTTPException(status_code=500, detail="文件下载失败")
     
-    # 返回文件流
+    # 返回文件流（安全编码文件名）
     original_filename = metadata.get("original_filename", "download.xlsx")
     
     return StreamingResponse(
         io.BytesIO(content),
         media_type=metadata.get("content_type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
         headers={
-            "Content-Disposition": f"attachment; filename=\"{original_filename}\""
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(original_filename)}"
         }
     )
 
@@ -164,14 +169,26 @@ async def get_file_info(
     if metadata.get("user_id") != user_id:
         raise HTTPException(status_code=403, detail="无权访问此文件")
     
+    upload_time_str = metadata.get("upload_time", "")
+    expires_at_str = metadata.get("expires_at", "")
+    
+    if not upload_time_str or not expires_at_str:
+        raise HTTPException(status_code=500, detail="文件元数据损坏")
+    
+    try:
+        upload_time = datetime.fromisoformat(upload_time_str)
+        expires_at = datetime.fromisoformat(expires_at_str)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=500, detail="文件元数据损坏")
+    
     return FileInfo(
         file_id=metadata.get("file_id"),
         filename=metadata.get("filename"),
         original_filename=metadata.get("original_filename"),
         file_size=metadata.get("file_size"),
         content_type=metadata.get("content_type"),
-        upload_time=datetime.fromisoformat(metadata.get("upload_time")),
-        expires_at=datetime.fromisoformat(metadata.get("expires_at"))
+        upload_time=upload_time,
+        expires_at=expires_at
     )
 
 
