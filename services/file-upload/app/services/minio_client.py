@@ -5,11 +5,20 @@ import os
 import json
 import io
 from typing import Optional
+from datetime import datetime
 from minio import Minio
 from minio.error import S3Error
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    """自定义 JSON 编码器，处理 datetime 对象"""
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 
 class MinIOClient:
@@ -79,7 +88,7 @@ class MinIOClient:
         
         try:
             # 将元数据存储为 JSON
-            metadata_bytes = json.dumps(metadata).encode('utf-8')
+            metadata_bytes = json.dumps(metadata, cls=DateTimeEncoder).encode('utf-8')
             
             # 上传元数据
             self.client.put_object(

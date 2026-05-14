@@ -106,11 +106,14 @@ async def download_file(
     """
     下载文件（需验证用户归属）
     
-    - **file_id**: 文件ID
+    - **file_id**: 文件ID（可带或不带 .xlsx 扩展名）
     - **user_id**: WeCom 用户ID，必须与上传时的用户ID一致
     """
-    # 获取文件名
-    filename = f"{file_id}.xlsx"
+    # 处理文件名（兼容带扩展名和不带扩展名的情况）
+    if file_id.endswith(".xlsx"):
+        filename = file_id
+    else:
+        filename = f"{file_id}.xlsx"
     
     # 获取 MinIO 客户端
     minio_client = get_minio_client()
@@ -165,10 +168,10 @@ async def get_file_info(
     """
     获取文件信息（需验证用户归属）
     
-    - **file_id**: 文件ID
+    - **file_id**: 文件ID（可带或不带 .xlsx 扩展名）
     - **user_id**: WeCom 用户ID
     """
-    filename = f"{file_id}.xlsx"
+    filename = file_id if file_id.endswith(".xlsx") else f"{file_id}.xlsx"
     minio_client = get_minio_client()
     
     metadata = minio_client.get_metadata(filename)
@@ -210,10 +213,10 @@ async def delete_file(
     """
     删除文件（需验证用户归属）
     
-    - **file_id**: 文件ID
+    - **file_id**: 文件ID（可带或不带 .xlsx 扩展名）
     - **user_id**: WeCom 用户ID
     """
-    filename = f"{file_id}.xlsx"
+    filename = file_id if file_id.endswith(".xlsx") else f"{file_id}.xlsx"
     minio_client = get_minio_client()
     
     metadata = minio_client.get_metadata(filename)
