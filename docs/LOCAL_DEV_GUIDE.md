@@ -28,9 +28,21 @@ cp .env.example .env
 MINIO_ROOT_USER=admin
 MINIO_ROOT_PASSWORD=your-password-here
 
-# LLM API（必填，处理 Excel 需要）
-HERMES_PROVIDER=openrouter
+# LLM API（必填，三选一）
+
+# 方式 1: OpenRouter
 OPENROUTER_API_KEY=sk-or-xxx
+
+# 方式 2: OpenAI 兼容自定义端点（类 OpenAI 协议）
+# HERMES_PROVIDER=openai
+# OPENAI_API_KEY=your-api-key
+# OPENAI_BASE_URL=https://your-custom-url/v1
+# HERMES_MODEL=your-model-name
+
+# 方式 3: 其他提供商
+# DEEPSEEK_API_KEY=xxx
+# GLM_API_KEY=xxx
+# KIMI_API_KEY=xxx
 
 # CORS（本地开发可留空或使用 localhost）
 CORS_ORIGINS=http://localhost:*
