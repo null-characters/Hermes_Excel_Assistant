@@ -9,11 +9,11 @@
 
 | 阶段 | 清单文件 | 任务数 | P0任务 | 预估工时 |
 |------|----------|--------|--------|----------|
-| Phase 1 | `01_phase1_environment.md` | 8 | 2 | Day 1-2 |
-| Phase 2 | `02_phase2_file_upload.md` | 10 | 4 | Day 3-5 |
-| Phase 3 | `03_phase3_hermes_skills.md` | 6 | 3 | Day 6-7 |
-| Phase 4 | `04_phase4_wecom_integration.md` | 7 | 2 | Day 8-10 |
-| Phase 5 | `05_phase5_monitoring.md` | 5 | 0 | Day 11-14 |
+| Phase 1 | `docs/tasks/01_phase1_environment.md` | 8 | 2 | Day 1-2 |
+| Phase 2 | `docs/tasks/02_phase2_file_upload.md` | 10 | 4 | Day 3-5 |
+| Phase 3 | `docs/tasks/03_phase3_hermes_skills.md` | 6 | 3 | Day 6-7 |
+| Phase 4 | `docs/tasks/04_phase4_wecom_integration.md` | 7 | 2 | Day 8-10 |
+| Phase 5 | `docs/tasks/05_phase5_monitoring.md` | 5 | 0 | Day 11-14 |
 | **总计** | - | **36** | **11** | **14 天** |
 
 ---
