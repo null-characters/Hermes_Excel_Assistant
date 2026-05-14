@@ -121,7 +121,7 @@ class MinIOClient:
             response.close()
             response.release_conn()
             return data
-        except S3Error as e:
+        except Exception as e:
             logger.error(f"Error downloading file: {e}")
             return None
     
@@ -183,7 +183,7 @@ class MinIOClient:
         try:
             self.client.stat_object(self.bucket_name, filename)
             return True
-        except S3Error:
+        except Exception:
             return False
 
 
