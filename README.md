@@ -81,8 +81,79 @@
 ### 前置条件
 
 - Docker & Docker Compose
-- 企业微信管理员权限（创建自建应用）
 - LLM API Key（OpenRouter / Anthropic / OpenAI）
+- 企业微信管理员权限（正式部署时需要）
+
+### 开发路径
+
+根据你的情况选择合适的启动方式：
+
+#### 路径 A：本地开发（推荐入门）
+
+**无需企业微信管理员权限，只测试核心功能**
+
+```bash
+# 1. 配置最小环境变量
+cp .env.example .env
+# 只需配置：
+# - MINIO_ROOT_PASSWORD（自定义密码）
+# - OPENROUTER_API_KEY（LLM API）
+
+# 2. 启动核心服务（跳过企微回调）
+docker compose up minio file-upload nginx -d
+
+# 3. 测试文件上传
+curl -X POST http://localhost:8080/api/upload \
+  -H "X-User-ID: test_user" \
+  -F "file=@test.xlsx"
+
+# 4. 运行单元测试
+cd services/file-upload
+python -m pytest app/tests/ -v
+```
+
+**适用场景**：开发调试、功能验证、学习研究
+
+---
+
+#### 路径 B：测试企业（完整测试）
+
+**自己创建测试企业，获得完整管理员权限**
+
+```
+🔗 注册地址：
+https://work.weixin.qq.com/wework_admin/register_wework?from=test_wework
+
+步骤：
+1. 微信扫码创建测试企业
+2. 自动成为超级管理员
+3. 创建自建应用、配置回调
+4. 完整测试企微集成
+```
+
+**适用场景**：企微集成测试、演示验证
+
+---
+
+#### 路径 C：正式部署
+
+**申请正式企业管理员权限或请管理员协助**
+
+```bash
+# 1. 配置完整环境变量
+cp .env.example .env
+# 填入企业管理员提供的配置
+
+# 2. 启动所有服务
+docker compose up -d
+
+# 3. 配置企业微信回调 URL
+https://your-domain.com/wecom/callback
+```
+
+**适用场景**：生产环境部署
+
+---
 
 ### 1. 克隆项目
 
