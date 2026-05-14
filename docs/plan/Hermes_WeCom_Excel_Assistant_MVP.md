@@ -25,7 +25,7 @@
 
 | 价值维度 | 说明 | 预期收益 |
 |----------|------|----------|
-| 效率提升 | 自动化处理替代手工 | 节省 60%+ 时间 |
+| 效率提升 | 自动化处理替代手工 | 节省 60%+ 时间 | 
 | 技能门槛降低 | 自然语言交互 | 人人可用 |
 | 错误减少 | Agent 标准化处理 | 减少 80% 人为失误 |
 
@@ -111,6 +111,7 @@ Step 1: 上传文件
 Step 2: 发送指令
 用户 → 确认预填内容 → 补充描述 → 发送
 示例: "@助手 处理 file_20260514_abc123 提取行政部"
+🔴 Hermes验证: 解析file_id → 验证user_id归属 → 拒绝非归属文件
 ✅ V3优化: 提供快捷指令按钮
 
 Step 3: Agent处理（新增进度通知🔴）
@@ -316,6 +317,9 @@ services:
     image: minio/minio:latest
     ports: ["9000:9000", "9001:9001"]
     volumes: [minio-data:/data]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
 
   prometheus:

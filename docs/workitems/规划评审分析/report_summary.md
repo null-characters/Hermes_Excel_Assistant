@@ -1,8 +1,9 @@
 # Hermes WeCom Excel Assistant MVP 规划评审总报告
 
-> **评审日期**: 2026-05-14  
-> **评审对象**: Hermes_WeCom_Excel_Assistant_MVP_v2.md  
+> **评审日期**: 2026-05-14
+> **评审对象**: Hermes_WeCom_Excel_Assistant_MVP.md (V2版本)
 > **评审视角**: 产品经理 + 高级软件工程师 交叉汇总
+> **状态**: ⚠️ 已过时 - V3版本已根据本报告修订完成
 
 ---
 
@@ -192,4 +193,4 @@
 | 产品经理评审报告 | `docs/workitems/规划评审分析/report_pm.md` | ✅ 已完成 |
 | 软件工程师评审报告 | `docs/workitems/规划评审分析/report_engineer.md` | ✅ 已完成 |
 | 交叉汇总总报告 | `docs/workitems/规划评审分析/report_summary.md` | ✅ 当前文档 |
-| 规划文档（评审对象） | `docs/plan/Hermes_WeCom_Excel_Assistant_MVP_v2.md` | 待修订 |
+| 规划文档（评审对象） | `docs/plan/Hermes_WeCom_Excel_Assistant_MVP.md` | ✅ V3已修订 |
