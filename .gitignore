@@ -1,4 +1,40 @@
+# .gitignore - Hermes WeCom Excel Assistant
+
+# ========================================
+# 环境变量（敏感配置）
+# ========================================
+.env
+.env.local
+.env.*.local
+# 保留模板文件
+!.env.example
+
+# ========================================
+# SSL 证书和私钥（安全关键）
+# ========================================
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+nginx/ssl/*.csr
+# 保留说明文件
+!nginx/ssl/README.md
+
+# ========================================
+# 数据目录（用户上传/输出文件）
+# ========================================
+data/uploads/*
+data/outputs/*
+# 保留目录结构
+!data/uploads/.gitkeep
+!data/outputs/.gitkeep
+
+# Hermes 内存/缓存数据
+data/memory/
+data/cache/
+
+# ========================================
 # Python
+# ========================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,49 +55,67 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual Environment
+# 虚拟环境
+.venv/
 venv/
 ENV/
 env/
-.venv/
 
-# IDE
+# ========================================
+# IDE 和编辑器
+# ========================================
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
 
-# Hermes
-.hermes/
-
-# Environment variables
-.env
-.env.local
-*.env
-
-# Data files
-data/
-*.xlsx
-*.xls
-*.csv
-
-# Logs
-logs/
+# ========================================
+# Docker 和容器
+# ========================================
 *.log
+docker-compose.override.yml
 
-# OS
+# ========================================
+# macOS
+# ========================================
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ========================================
+# Windows
+# ========================================
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Docker
-.docker/
+# ========================================
+# 测试和覆盖率
+# ========================================
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
 
-# Temporary files
-tmp/
-temp/
+# ========================================
+# 临时文件
+# ========================================
 *.tmp
+*.temp
+*.bak
+*.cache
+*.xlsx.tmp
+*.xls.tmp
 
-# Standards (external)
-docs/standards/
+# ========================================
+# MinIO 本地数据（如果使用本地存储）
+# ========================================
+minio-data/

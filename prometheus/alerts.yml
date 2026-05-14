@@ -1,0 +1,60 @@
+# Prometheus 告警规则 - Hermes WeCom Excel Assistant
+
+groups:
+  - name: service_health
+    rules:
+      # 服务宕机告警
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "服务 {{ $labels.job }} 宕机"
+          description: "服务 {{ $labels.job }} 已宕机超过 1 分钟"
+
+  - name: resource_usage
+    rules:
+      # CPU 使用率告警
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "CPU 使用率超过 80%，当前值: {{ $value }}%"
+
+      # 内存使用率告警
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "内存使用率超过 80%，当前值: {{ $value }}%"
+
+  - name: minio_storage
+    rules:
+      # MinIO 存储容量告警
+      - alert: MinIOStorageHigh
+        expr: (minio_cluster_capacity_usable_total_bytes - minio_cluster_capacity_usable_free_bytes) / minio_cluster_capacity_usable_total_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MinIO 存储容量告急"
+          description: "MinIO 存储使用率超过 90%，当前值: {{ $value }}%"
+
+  - name: agent_execution
+    rules:
+      # Agent 执行失败率告警
+      - alert: AgentHighFailureRate
+        expr: rate(hermes_execution_failures_total[5m]) / rate(hermes_execution_total[5m]) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent 执行失败率过高"
+          description: "Agent 执行失败率超过 10%，当前值: {{ $value }}%"

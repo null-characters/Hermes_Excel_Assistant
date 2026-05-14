@@ -1,0 +1,53 @@
+# Hermes Agent 配置文件
+# Hermes WeCom Excel Assistant
+
+# LLM 配置
+provider: ${HERMES_PROVIDER}
+model: ${HERMES_MODEL}
+
+# WeCom 回调配置
+wecom:
+  callback:
+    corp_id: ${WECOM_CALLBACK_CORP_ID}
+    corp_secret: ${WECOM_CALLBACK_CORP_SECRET}
+    agent_id: ${WECOM_CALLBACK_AGENT_ID}
+    token: ${WECOM_CALLBACK_TOKEN}
+    encoding_aes_key: ${WECOM_CALLBACK_ENCODING_AES_KEY}
+    allowed_users: ${WECOM_CALLBACK_ALLOWED_USERS}
+
+# Terminal 后端配置 (安全关键)
+terminal:
+  backend: docker
+  docker_image: python:3.11-slim
+  # 安全配置
+  network_disabled: true
+  timeout: 300
+  read_only_root: true
+  max_processes: 100
+  container_cpu: 1
+  container_memory: 2048
+
+# 文件处理配置
+file_processing:
+  upload_service_url: http://file-upload:8000
+  minio:
+    endpoint: minio:9000
+    bucket: ${MINIO_BUCKET}
+  
+# 技能配置
+skills:
+  enabled:
+    - excel_processor
+    - progress_notifier
+    - file_validator
+  path: /root/.hermes/skills
+
+# 内存配置
+memory:
+  enabled: true
+  path: /app/data/memory
+
+# 日志配置
+logging:
+  level: ${LOG_LEVEL:-INFO}
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

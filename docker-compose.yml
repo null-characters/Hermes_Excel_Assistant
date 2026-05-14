@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # Nginx 反向代理 - HTTPS 终止
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: hermes-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - hermes
+      - file-upload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Hermes Agent - 核心 AI 引擎
+  hermes:
+    image: nousresearch/hermes-agent:v0.13.0
+    container_name: hermes-agent
+    ports:
+      - "8645:8645"
+    volumes:
+      - ./config:/root/.hermes
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env
+    environment:
+      # 安全配置 (P0)
+      - TERMINAL_NETWORK_DISABLED=${TERMINAL_NETWORK_DISABLED:-true}
+      - TERMINAL_TIMEOUT=${TERMINAL_TIMEOUT:-300}
+      - TERMINAL_READ_ONLY_ROOT=${TERMINAL_READ_ONLY_ROOT:-true}
+      - TERMINAL_MAX_PROCESSES=${TERMINAL_MAX_PROCESSES:-100}
+      - TERMINAL_CONTAINER_CPU=${TERMINAL_CONTAINER_CPU:-1}
+      - TERMINAL_CONTAINER_MEMORY=${TERMINAL_CONTAINER_MEMORY:-2048}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8645/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # File Upload Service - 文件上传服务
+  file-upload:
+    build:
+      context: ./services/file-upload
+      dockerfile: Dockerfile
+    container_name: hermes-file-upload
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./data/uploads:/app/uploads
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-your-password}
+      - MINIO_BUCKET=${MINIO_BUCKET:-excel-files}
+      - MINIO_SECURE=false
+    env_file:
+      - .env
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MinIO - 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: hermes-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-your-password}
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Prometheus - 监控告警
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hermes-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  minio-data:
