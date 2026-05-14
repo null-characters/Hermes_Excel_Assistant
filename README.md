@@ -16,6 +16,20 @@
 
 ---
 
+## 项目状态
+
+| 阶段 | 状态 | 说明 |
+|------|------|------|
+| Phase 1: 基础环境 | ✅ 完成 | Docker/MinIO/Nginx 配置 |
+| Phase 2: File Upload Service | ✅ 完成 | FastAPI 文件上传服务 |
+| Phase 3: Hermes Skills | ✅ 完成 | 技能定义与配置 |
+| Phase 4: WeCom 集成 | ✅ 完成 | 回调配置与测试 |
+| Phase 5: 监控运维 | ✅ 完成 | Prometheus 监控配置 |
+| 代码审查修复 | ✅ 完成 | 安全问题与规范问题 |
+| TDD 单元测试 | ✅ 完成 | 52 个测试用例 |
+
+---
+
 ## 架构概览
 
 ```
@@ -100,6 +114,9 @@ OPENROUTER_API_KEY=sk-or-xxx
 # MinIO
 MINIO_ROOT_USER=admin
 MINIO_ROOT_PASSWORD=your-password
+
+# CORS（生产环境必须配置具体域名）
+CORS_ORIGINS=https://your-domain.com
 ```
 
 ### 3. 启动服务
@@ -124,6 +141,10 @@ docker compose ps
 
 # 查看日志
 docker compose logs -f hermes
+
+# 运行单元测试
+cd services/file-upload
+python -m pytest app/tests/ -v
 ```
 
 ---
@@ -144,8 +165,16 @@ Hermes-WeCom-Assistant/
 │   └── file-upload/            # 文件上传服务
 │       ├── Dockerfile
 │       ├── app/
-│       │   ├── main.py
-│       │   ├── models.py
+│       │   ├── main.py         # FastAPI 应用入口
+│       │   ├── models.py       # 数据模型
+│       │   ├── routers/
+│       │   │   └── upload.py   # API 路由
+│       │   ├── services/
+│       │   │   └── minio_client.py  # MinIO 客户端
+│       │   ├── tests/          # 单元测试
+│       │   │   ├── test_models.py
+│       │   │   ├── test_minio_client.py
+│       │   │   └── test_upload.py
 │       │   └── static/
 │       └── requirements.txt
 ├── nginx/                      # HTTPS 配置
@@ -182,17 +211,23 @@ Hermes-WeCom-Assistant/
 
 ---
 
-## 开发计划
+## 测试
 
-| 阶段 | 时间 | 目标 |
-|------|------|------|
-| Phase 1 | Day 1-2 | 基础环境 + 安全配置 |
-| Phase 2 | Day 3-5 | File Upload Service |
-| Phase 3 | Day 6-7 | Hermes Skills 配置 |
-| Phase 4 | Day 8-10 | 企业微信集成测试 |
-| Phase 5 | Day 11-14 | 监控 + 优化 |
+### 单元测试
 
-详细任务清单见 [docs/tasks/](./docs/tasks/)
+```bash
+cd services/file-upload
+python -m pytest app/tests/ -v
+```
+
+### 测试覆盖
+
+| 测试文件 | 测试数量 | 覆盖模块 |
+|----------|----------|----------|
+| test_models.py | 17 | 数据模型 |
+| test_minio_client.py | 13 | MinIO 客户端 |
+| test_upload.py | 22 | API 路由 |
+| **总计** | **52** | 全部通过 |
 
 ---
 
@@ -204,6 +239,9 @@ Hermes-WeCom-Assistant/
 | 文件访问控制 | user_id 绑定验证 |
 | 传输加密 | HTTPS 强制 |
 | 执行超时 | 300s 强制终止 |
+| CORS 限制 | 环境变量配置具体域名 |
+| Content-Disposition | RFC 5987 编码防止注入 |
+| 参数验证 | 非空检查防止异常 |
 
 ---
 
@@ -211,7 +249,8 @@ Hermes-WeCom-Assistant/
 
 | 文档 | 说明 |
 |------|------|
-| [总体规划](./docs/plan/Hermes_WeCom_Excel_Assistant_MVP.md) | V3 版本完整规划 |
+| [总体规划 V3](./docs/plan/Hermes_WeCom_Excel_Assistant_MVP.md) | 完整规划 |
+| [总体规划 V4](./docs/plan/Hermes_WeCom_Excel_Assistant_MVP_v2.md) | 最新版本 |
 | [任务清单](./docs/tasks/) | 5 个阶段任务拆解 |
 | [评审报告](./docs/workitems/规划评审分析/) | 双视角评审分析 |
 
