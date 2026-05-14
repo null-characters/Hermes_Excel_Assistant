@@ -1,7 +1,6 @@
 """
 文件上传 API 路由
 """
-import os
 import uuid
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Depends
@@ -11,11 +10,17 @@ import io
 import logging
 
 from ..models import FileMetadata, UploadResponse, FileInfo, ErrorResponse
-from ..services.minio_client import get_minio_client, MinIOClient
+from ..services.minio_client import get_minio_client
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["文件操作"])
+
+# 常量定义
+FILE_ID_HEX_LENGTH = 8  # 文件ID中UUID十六进制长度
+DEFAULT_CONTENT_TYPE = (
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
 
 
 def get_user_id(user_id: str = Query(..., description="WeCom 用户ID")) -> str:
@@ -55,7 +60,10 @@ async def upload_file(
         raise HTTPException(status_code=400, detail="文件内容为空")
     
     # 生成文件元数据
-    file_id = f"file_{datetime.now().strftime('%Y%m%d')}_{uuid.uuid4().hex[:8]}"
+    file_id = (
+        f"file_{datetime.now().strftime('%Y%m%d')}_"
+        f"{uuid.uuid4().hex[:FILE_ID_HEX_LENGTH]}"
+    )
     stored_filename = f"{file_id}.xlsx"
     
     metadata = FileMetadata(
@@ -63,7 +71,7 @@ async def upload_file(
         user_id=user_id,
         filename=stored_filename,
         original_filename=file.filename or "unknown.xlsx",
-        content_type=file.content_type or "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        content_type=file.content_type or DEFAULT_CONTENT_TYPE,
         file_size=len(content)
     )
     
@@ -140,9 +148,11 @@ async def download_file(
     
     return StreamingResponse(
         io.BytesIO(content),
-        media_type=metadata.get("content_type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        media_type=metadata.get("content_type", DEFAULT_CONTENT_TYPE),
         headers={
-            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(original_filename)}"
+            "Content-Disposition": (
+                f"attachment; filename*=UTF-8''{quote(original_filename)}"
+            )
         }
     )
 

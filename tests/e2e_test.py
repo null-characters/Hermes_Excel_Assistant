@@ -14,13 +14,19 @@ FILE_UPLOAD_URL = "http://localhost:8080"
 HERMES_URL = "http://localhost:8645"
 TEST_USER_ID = "test_user_e2e"
 
+# 常量定义
+PROCESSING_WAIT_SECONDS = 5  # 处理等待时间（秒）
+EXCEL_MIME_TYPE = (
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
 
 @pytest.fixture
 def sample_excel_file():
     """创建测试 Excel 文件"""
     # 创建一个简单的 xlsx 文件（实际是 ZIP 格式）
     content = b"PK\x03\x04" + b"\x00" * 1024
-    return ("test_data.xlsx", io.BytesIO(content), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return ("test_data.xlsx", io.BytesIO(content), EXCEL_MIME_TYPE)
 
 
 @pytest.mark.asyncio
@@ -123,7 +129,7 @@ async def test_full_processing_flow(sample_excel_file):
         
         # Step 3: 等待处理完成
         # 在实际环境中，会收到进度通知
-        await asyncio.sleep(5)  # 等待处理
+        await asyncio.sleep(PROCESSING_WAIT_SECONDS)
         
         # Step 4: 验证结果文件
         # 检查是否有 _processed 文件
