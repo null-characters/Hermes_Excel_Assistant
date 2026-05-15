@@ -1,19 +1,9 @@
 # Hermes Agent 配置文件
-# Hermes WeCom Excel Assistant
+# Hermes Excel Assistant - 本地化方案
 
 # LLM 配置
 provider: ${HERMES_PROVIDER}
 model: ${HERMES_MODEL}
-
-# WeCom 回调配置
-wecom:
-  callback:
-    corp_id: ${WECOM_CALLBACK_CORP_ID}
-    corp_secret: ${WECOM_CALLBACK_CORP_SECRET}
-    agent_id: ${WECOM_CALLBACK_AGENT_ID}
-    token: ${WECOM_CALLBACK_TOKEN}
-    encoding_aes_key: ${WECOM_CALLBACK_ENCODING_AES_KEY}
-    allowed_users: ${WECOM_CALLBACK_ALLOWED_USERS}
 
 # Terminal 后端配置 (安全关键)
 terminal:
@@ -51,3 +41,7 @@ memory:
 logging:
   level: ${LOG_LEVEL:-INFO}
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# 注意：企业微信回调配置已废弃
+# 当前方案为本地化部署，通过 Hermes Bridge API 提交任务
+# 如需恢复企微集成，请参考 git 历史中的配置

@@ -1,4 +1,22 @@
-version: '3.8'
+# ===========================================
+# Hermes Excel Assistant - 本地化方案
+# ===========================================
+# 服务编排配置
+#
+# 核心服务：
+# - hermes-bridge (8646): 任务提交 API，本地 REST 接口
+# - hermes-agent (8645): LLM Agent 核心，通过 docker exec 调用
+# - file-upload (8080): 文件上传/下载服务
+# - minio (9000/9001): 对象存储 + Web 管理界面
+# - prometheus (9090): 监控面板
+# - nginx-proxy (80/443): 反向代理（可选）
+#
+# 使用方式：
+#   docker compose up -d           # 启动所有服务
+#   docker compose ps              # 查看状态
+#   curl http://localhost:8646/health  # 健康检查
+#
+# 详细指南：docs/LOCAL_DEV_GUIDE.md
 
 services:
   # Nginx 反向代理 - HTTPS 终止
@@ -21,15 +39,39 @@ services:
       timeout: 10s
       retries: 3
 
+  # Hermes Bridge - 本地桥接服务
+  hermes-bridge:
+    build:
+      context: ./services/hermes-bridge
+      dockerfile: Dockerfile
+    container_name: hermes-bridge
+    ports:
+      - "8646:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # 需要访问 Docker
+    environment:
+      - HERMES_CONTAINER_NAME=hermes-agent
+      - HERMES_TIMEOUT=300
+    depends_on:
+      - hermes
+      - file-upload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Hermes Agent - 核心 AI 引擎
   hermes:
-    image: nousresearch/hermes-agent:v0.13.0
+    image: nousresearch/hermes-agent:main
     container_name: hermes-agent
     ports:
       - "8645:8645"
     volumes:
       - ./config:/root/.hermes
       - ./data:/app/data
+      - ./data/uploads:/app/uploads
       - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .env
@@ -41,12 +83,15 @@ services:
       - TERMINAL_MAX_PROCESSES=${TERMINAL_MAX_PROCESSES:-100}
       - TERMINAL_CONTAINER_CPU=${TERMINAL_CONTAINER_CPU:-1}
       - TERMINAL_CONTAINER_MEMORY=${TERMINAL_CONTAINER_MEMORY:-2048}
+      # 文件处理配置
+      - FILE_UPLOAD_URL=http://file-upload:8000
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-your-password}
+      - MINIO_BUCKET=${MINIO_BUCKET:-excel-files}
+      - MINIO_SECURE=false
+    command: ["tail", "-f", "/dev/null"]  # 保持容器运行，等待命令
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8645/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   # File Upload Service - 文件上传服务
   file-upload:

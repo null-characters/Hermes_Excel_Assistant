@@ -1,21 +1,33 @@
 # 本地开发指南
 
-> 无需企业微信管理员权限，快速启动核心服务进行开发调试
+> 本地化部署，无需企业微信、无需管理员权限
 
 ---
 
-## 适用场景
+## 架构说明
 
-- 没有企业微信管理员权限
-- 只想测试文件上传/下载/处理功能
-- 开发调试 Hermes Skills
-- 学习研究项目架构
+本项目采用**本地化方案**，核心组件：
+
+| 组件 | 端口 | 说明 |
+|------|------|------|
+| Hermes Bridge | 8646 | 任务提交 API，与 Hermes Agent 通信 |
+| File Upload Service | 8080 | 文件上传/下载/管理 |
+| Hermes Agent | 8645 | LLM Agent 核心（内部调用） |
+| MinIO | 9000/9001 | 对象存储 + Web 管理界面 |
+| Prometheus | 9090 | 监控面板 |
+
+**数据流**：
+```
+用户 → Hermes Bridge API → docker exec → Hermes Agent → LLM 推理
+                                                          ↓
+用户 ← 结果文件 ← File Upload Service ← MinIO ← 处理结果
+```
 
 ---
 
 ## 快速启动
 
-### 1. 最小环境配置
+### 1. 环境配置
 
 ```bash
 cp .env.example .env
@@ -24,16 +36,19 @@ cp .env.example .env
 **本地开发只需配置**：
 
 ```env
-# MinIO（必填，自定义密码）
+# MinIO（必填，自定义密码，8位以上）
 MINIO_ROOT_USER=admin
 MINIO_ROOT_PASSWORD=your-password-here
 
 # LLM API（必填，三选一）
 
-# 方式 1: OpenRouter
+# 方式 1: OpenRouter（推荐，200+ 模型可选）
+HERMES_PROVIDER=openrouter
+HERMES_MODEL=anthropic/claude-3-sonnet
 OPENROUTER_API_KEY=sk-or-xxx
 
 # 方式 2: OpenAI 兼容自定义端点（类 OpenAI 协议）
+# 适用于：本地 VLLM/SGLang、自建服务、第三方兼容 API
 # HERMES_PROVIDER=openai
 # OPENAI_API_KEY=your-api-key
 # OPENAI_BASE_URL=https://your-custom-url/v1
@@ -43,36 +58,26 @@ OPENROUTER_API_KEY=sk-or-xxx
 # DEEPSEEK_API_KEY=xxx
 # GLM_API_KEY=xxx
 # KIMI_API_KEY=xxx
-
-# CORS（本地开发可留空或使用 localhost）
-CORS_ORIGINS=http://localhost:*
 ```
 
-**无需配置**（企微相关）：
-- `WECOM_CALLBACK_*` 系列
-- `HERMES_DOCKER_BACKEND_*` 系列
+**无需配置**（已废弃企微集成）：
+- ~~`WECOM_CALLBACK_*` 系列~~
 
 ---
 
-### 2. 启动核心服务
+### 2. 启动服务
 
 ```bash
-# 只启动 minio + file-upload + nginx
-docker compose up minio file-upload nginx -d
+# 启动所有服务
+docker compose up -d
 
 # 查看服务状态
 docker compose ps
 
 # 查看日志
-docker compose logs -f file-upload
+docker compose logs -f hermes-bridge
+docker compose logs -f hermes-agent
 ```
-
-**服务端口**：
-| 服务 | 端口 | 说明 |
-|------|------|------|
-| nginx | 8080 | HTTP 入口 |
-| MinIO API | 9000 | S3 API |
-| MinIO Console | 9001 | Web 管理界面 |
 
 ---
 
@@ -80,79 +85,97 @@ docker compose logs -f file-upload
 
 ```bash
 # 健康检查
-curl http://localhost:8080/health
+curl http://localhost:8646/health   # Hermes Bridge
+curl http://localhost:8080/health   # File Upload Service
 
 # 预期响应
-# {"status": "healthy", "service": "file-upload"}
+# {"status":"healthy","service":"hermes-bridge","hermes_available":true}
+# {"status":"healthy","service":"file-upload"}
 ```
 
 ---
 
-## API 测试
+## API 使用
 
-### 文件上传
+### Hermes Bridge API
 
-```bash
-# 创建测试文件
-echo "name,age,city\nAlice,25,Beijing\nBob,30,Shanghai" > test.csv
-
-# 上传文件
-curl -X POST http://localhost:8080/api/upload \
-  -H "X-User-ID: test_user" \
-  -F "file=@test.csv"
-
-# 预期响应
-# {
-#   "success": true,
-#   "file_id": "file_20260514_xxx",
-#   "filename": "file_20260514_xxx.csv",
-#   "original_filename": "test.csv",
-#   "file_size": 45,
-#   "expires_at": "2026-05-21T..."
-# }
-```
-
-### 文件下载
+#### 提交文本任务
 
 ```bash
-# 下载文件（使用上传返回的 file_id）
-curl http://localhost:8080/api/download/file_20260514_xxx.csv \
-  -H "X-User-ID: test_user" \
-  -o downloaded.csv
-
-# 检查文件
-cat downloaded.csv
+curl -X POST http://localhost:8646/api/submit \
+  -H "Content-Type: application/json" \
+  -d '{"message": "你好，请介绍一下你自己"}'
 ```
 
-### 文件信息
+#### 处理 Excel 文件
 
 ```bash
-# 获取文件信息
-curl http://localhost:8080/api/info/file_20260514_xxx.csv \
-  -H "X-User-ID: test_user"
+# Step 1: 上传文件
+curl -X POST "http://localhost:8080/api/upload?user_id=local_user" \
+  -F "file=@test.xlsx"
 
-# 预期响应
-# {
-#   "file_id": "file_20260514_xxx",
-#   "filename": "file_20260514_xxx.csv",
-#   "original_filename": "test.csv",
-#   "file_size": 45,
-#   "content_type": "text/csv",
-#   "upload_time": "2026-05-14T...",
-#   "expires_at": "2026-05-21T..."
-# }
+# 响应示例：
+# {"success":true,"file_id":"file_20260515_xxx","filename":"file_20260515_xxx.xlsx",...}
+
+# Step 2: 提交处理任务
+curl -X POST http://localhost:8646/api/excel \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_id": "file_20260515_xxx",
+    "task": "替换第一行数据为：员工姓名,所属部门,年龄,入职时间,月薪",
+    "user_id": "local_user"
+  }'
+
+# Step 3: 下载结果
+curl "http://localhost:8080/api/download/file_20260515_xxx.xlsx?user_id=local_user" \
+  -o result.xlsx
 ```
 
-### 文件删除
+#### 检查 Agent 状态
 
 ```bash
-# 删除文件
-curl -X DELETE http://localhost:8080/api/delete/file_20260514_xxx.csv \
-  -H "X-User-ID: test_user"
+curl http://localhost:8646/api/status
 
-# 预期响应
-# {"success": true, "message": "文件删除成功"}
+# 响应示例：
+# {"available":true,"container":"hermes-agent"}
 ```
+
+### File Upload API
+
+#### 文件上传
+
+```bash
+curl -X POST "http://localhost:8080/api/upload?user_id=test_user" \
+  -F "file=@test.xlsx"
+```
+
+#### 文件下载
+
+```bash
+curl "http://localhost:8080/api/download/file_20260515_xxx.xlsx?user_id=test_user" \
+  -o downloaded.xlsx
+```
+
+#### 文件信息
+
+```bash
+curl "http://localhost:8080/api/info/file_20260515_xxx.xlsx?user_id=test_user"
+```
+
+#### 文件删除
+
+```bash
+curl -X DELETE "http://localhost:8080/api/delete/file_20260515_xxx.xlsx?user_id=test_user"
+```
+
+---
+
+## Swagger UI
+
+访问 API 文档：
+
+- Hermes Bridge: http://localhost:8646/docs
+- File Upload: http://localhost:8080/docs
 
 ---
 
@@ -169,6 +192,18 @@ curl -X DELETE http://localhost:8080/api/delete/file_20260514_xxx.csv \
 - 查看上传的文件
 - 手动上传/下载文件
 - 管理存储桶
+
+---
+
+## 全链路测试
+
+```bash
+# 本地模式（模拟处理，无需 LLM API Key）
+python tests/test_full_chain.py --mode local
+
+# 完整模式（需要 Hermes Agent + LLM API Key）
+python tests/test_full_chain.py --mode full
+```
 
 ---
 
@@ -192,59 +227,40 @@ python -m pytest app/tests/ -v --cov=app
 
 ---
 
-## Mock 企微消息测试
-
-创建测试脚本模拟企微消息：
-
-```python
-# test_hermes_skill.py
-import requests
-
-def mock_wecom_message(user_id: str, message: str, file_id: str = None):
-    """模拟企微发送消息给 Hermes"""
-    payload = {
-        "user_id": user_id,
-        "message": message
-    }
-    if file_id:
-        payload["file_id"] = file_id
-    
-    response = requests.post(
-        "http://localhost:8080/api/process",
-        json=payload
-    )
-    return response.json()
-
-# 测试用例
-if __name__ == "__main__":
-    # 测试 1: 简单消息
-    result = mock_wecom_message("test_user", "你好")
-    print(f"简单消息: {result}")
-    
-    # 测试 2: 带文件处理
-    result = mock_wecom_message(
-        "test_user", 
-        "分析这个 Excel，提取所有行政部人员",
-        file_id="file_20260514_xxx.xlsx"
-    )
-    print(f"文件处理: {result}")
-```
-
----
-
 ## 常见问题
 
-### Q: 端口被占用怎么办？
+### Q: Hermes Agent 状态显示不可用？
+
+```bash
+# 检查容器状态
+docker ps -a --filter "name=hermes-agent"
+
+# 查看日志
+docker logs hermes-agent --tail 50
+
+# 重启服务
+docker compose restart hermes-agent
+```
+
+### Q: LLM API 调用失败？
+
+```bash
+# 检查 API Key 配置
+docker exec hermes-agent cat /root/.hermes/config.yaml
+
+# 查看 Agent 日志
+docker logs hermes-agent --tail 100 | grep -i error
+```
+
+### Q: 端口被占用？
 
 ```bash
 # 查看端口占用
+lsof -i :8646
 lsof -i :8080
 lsof -i :9000
-lsof -i :9001
 
 # 修改 docker-compose.yml 中的端口映射
-ports:
-  - "18080:8080"  # 改为其他端口
 ```
 
 ### Q: MinIO 启动失败？
@@ -259,31 +275,32 @@ rm -rf data/minio
 docker compose up minio -d
 ```
 
-### Q: 文件上传后找不到？
-
-```bash
-# 检查 MinIO bucket
-# 登录 http://localhost:9001
-# 查看 uploads bucket
-
-# 检查日志
-docker compose logs file-upload | grep -i error
-```
-
 ---
 
-## 下一步
+## 开发调试
 
-当你准备好完整测试企微集成时：
+### 本地开发 Hermes Bridge
 
-1. 创建测试企业：https://work.weixin.qq.com/wework_admin/register_wework?from=test_wework
-2. 参考 [README.md](../README.md) 路径 B 配置完整回调
-3. 启动所有服务：`docker compose up -d`
+```bash
+cd services/hermes-bridge
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 本地运行（需要 Docker 访问 Hermes Agent 容器）
+uvicorn app.main:app --reload --port 8646
+```
+
+### 查看 Hermes Agent 可用命令
+
+```bash
+docker exec hermes-agent /opt/hermes/.venv/bin/hermes --help
+```
 
 ---
 
 ## 相关文档
 
 - [README.md](../README.md) - 项目总览
-- [architecture.md](./standards/skills/architecture.md) - 架构文档
-- [API 文档](./api/) - API 详细说明
+- [API 文档](http://localhost:8646/docs) - Swagger UI
+- [评审报告](./workitems/规划评审分析/) - 双视角评审分析
