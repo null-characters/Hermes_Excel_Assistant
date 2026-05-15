@@ -298,9 +298,9 @@ python -m pytest app/tests/ -v
 
 | 文档 | 说明 |
 |------|------|
-| [本地开发指南](./docs/LOCAL_DEV_GUIDE.md) | 详细本地开发指南 |
-| [总体规划 V3](./docs/plan/Hermes_WeCom_Excel_Assistant_MVP.md) | 完整规划 |
-| [总体规划 V4](./docs/plan/Hermes_WeCom_Excel_Assistant_MVP_v2.md) | 最新版本 |
+| [本地开发指南](./docs/LOCAL_DEV_GUIDE.md) | 快速启动、API 使用、故障排除 |
+| [总体规划](./docs/plan/Hermes_WeCom_Excel_Assistant_MVP.md) | MVP 规划方案 |
+| [任务拆解](./docs/workitems/MVP任务拆解/) | MVP 阶段任务明细 |
 | [评审报告](./docs/workitems/规划评审分析/) | 双视角评审分析 |
 
 ---
