@@ -4,7 +4,7 @@
 
 ## 项目简介
 
-利用 Hermes Agent 的自主代理能力，为文职人员提供 Excel 处理助手。用户通过本地 API 上传文件，发送自然语言指令，系统自动完成数据清洗、汇总或分析，并返回处理后的结果文件。
+利用 Hermes Agent 的自主代理能力，为文职人员提供 Excel 处理助手。用户通过 **Web UI** 或 API 上传文件，发送自然语言指令，系统自动完成数据清洗、汇总或分析，并返回处理后的结果文件。
 
 **当前方案：本地化部署** — 无需企业微信、无需管理员权限，所有操作在本地完成。
 
@@ -26,16 +26,17 @@
 | 阶段 | 状态 | 说明 |
 |------|------|------|
 | **Phase 1: PoC 验证** | ✅ 完成 | 技术可行性验证 |
-| **Phase 2: 产品化 MVP** | 🚧 进行中 | Web UI + 安全加固 + 用户测试 |
+| **Phase 2: 产品化 MVP** | ✅ 完成 | Web UI + 安全加固 + 本地存储 |
 
-### Phase 1 完成内容
+### Phase 2 完成内容
 
-- ✅ Docker/MinIO/Nginx 基础环境
-- ✅ FastAPI 文件上传服务
-- ✅ Hermes Bridge 本地桥接服务
-- ✅ Hermes Agent + 自定义 LLM 集成
-- ✅ 本地模式全链路验证通过
-- ✅ Prometheus 监控配置
+- ✅ **安全止血**: Agent 容器移除 Docker Socket，Prompt 参数转义
+- ✅ **会话隔离**: 每会话独立目录 + SQLite 数据库
+- ✅ **路径白名单**: `validate_path()` 防止目录穿越
+- ✅ **命令黑名单**: `validate_prompt()` 拦截危险命令
+- ✅ **本地文件存储**: 移除 MinIO，改用本地文件系统
+- ✅ **Web UI**: Streamlit 前端，非技术用户可用
+- ✅ **E2E 测试**: Playwright 自动化流程测试
 
 ### 路线选择
 
@@ -44,10 +45,10 @@
 | 决策项 | 选择 | 说明 |
 |--------|------|------|
 | 技术路线 | ✅ 本地化部署 | 无需企微权限，降低验证门槛 |
-| 产品化策略 | ✅ 并行推进 | 安全修复 + Web UI 同步开发 |
 | Excel 存储 | ✅ 本地文件系统 | 简化架构，放弃 MinIO |
 | 沙箱方案 | ✅ local + SQLite 隔离 | 会话级数据隔离，路径白名单 |
 | LLM 配置 | ✅ 用户自定义 | 用户自行配置 API Key 和 Provider |
+| 用户界面 | ✅ Streamlit Web UI | 非技术用户友好 |
 
 ---
 
@@ -57,8 +58,9 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                      用户交互层                              │
 │   ┌──────────────┐        ┌────────────────────────────┐    │
-│   │  REST API    │        │     Swagger UI / curl       │    │
-│   │  本地提交任务 │        │      调试与测试界面         │    │
+│   │  Streamlit   │        │     REST API / Swagger     │    │
+│   │   Web UI     │        │      调试与测试界面         │    │
+│   │  (port 8501) │        │                            │    │
 │   └──────────────┘        └────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
            │
@@ -66,17 +68,17 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                        服务层                                │
 │   ┌──────────────────┐  ┌─────────────────┐                 │
-│   │  Hermes Bridge   │  │ File Upload Svc │                 │
-│   │  - 任务接收 API  │  │  - 文件接收 API │                 │
-│   │  - Agent 通信    │  │  - MinIO 存储   │                 │
-│   │  - 结果返回      │  │  - 用户绑定验证 │                 │
+│   │  Hermes Bridge   │  │ Session Manager │                 │
+│   │  - 任务接收 API  │  │  - 会话创建/删除│                 │
+│   │  - Agent 通信    │  │  - 路径白名单   │                 │
+│   │  - 结果返回      │  │  - 命令黑名单   │                 │
 │   └────────┬─────────┘  └─────────────────┘                 │
 │            │                                                 │
 │            ▼                                                 │
 │   ┌──────────────────┐                                      │
 │   │  Hermes Agent    │                                      │
 │   │  - LLM 推理      │                                      │
-│   │  - Docker 沙箱   │                                      │
+│   │  - local 终端    │                                      │
 │   │  - Skills & 内存 │                                      │
 │   └──────────────────┘                                      │
 └─────────────────────────────────────────────────────────────┘
@@ -84,23 +86,39 @@
            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                      基础设施层                              │
-│   ┌──────────┐    ┌──────────┐    ┌──────────────────┐      │
-│   │  Docker  │    │  MinIO   │    │   Prometheus     │      │
-│   │  Engine  │    │  存储    │    │   监控告警       │      │
-│   └──────────┘    └──────────┘    └──────────────────┘      │
+│   ┌──────────┐    ┌──────────────────┐    ┌──────────────┐   │
+│   │  Docker  │    │  本地文件系统     │    │  Prometheus  │   │
+│   │  Engine  │    │  data/sessions/  │    │   监控告警   │   │
+│   └──────────┘    └──────────────────┘    └──────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### 数据流
 
 ```
-用户 → curl/API → Hermes Bridge → docker exec → Hermes Agent (chat -q)
-                                                      │
-                                                      ▼
-                                               LLM 推理 + 工具调用
-                                                      │
-                                                      ▼
-用户 ← 结果文件 ← File Upload Service ← MinIO ← 处理后的 Excel
+用户 → Web UI (8501) → Hermes Bridge (8646) → docker exec → Hermes Agent
+                                                          │
+                                                          ▼
+                                                   LLM 推理 + 工具调用
+                                                          │
+                                                          ▼
+用户 ← 结果文件 ← 本地文件系统 ← data/sessions/{session_id}/outputs/
+```
+
+### 会话隔离架构
+
+```
+data/sessions/
+├── sess_abc123/              # 会话目录
+│   ├── workspace.db          # SQLite 数据库
+│   ├── uploads/              # 上传文件
+│   │   └── input.xlsx
+│   └── outputs/              # 输出文件
+│       └── result.xlsx
+└── sess_def456/
+    ├── workspace.db
+    ├── uploads/
+    └── outputs/
 ```
 
 ---
@@ -111,7 +129,9 @@
 |------|------|------|
 | Agent 框架 | Hermes Agent | NousResearch/hermes-agent |
 | 任务桥接 | Hermes Bridge | FastAPI 本地 REST API |
-| 文件服务 | FastAPI + MinIO | 文件上传/存储 |
+| Web UI | Streamlit | Python 前端框架 |
+| 会话管理 | Session Manager | 会话隔离 + 安全验证 |
+| 文件存储 | 本地文件系统 | data/sessions/ 目录 |
 | 容器化 | Docker Compose | 服务编排 |
 | 监控 | Prometheus | 指标采集告警 |
 
@@ -127,24 +147,20 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/null-characters/Hermes-WeCom-Assistant.git
-cd Hermes-WeCom-Assistant
+git clone https://github.com/null-characters/Hermes-Excel-Assistant.git
+cd Hermes-Excel-Assistant
 ```
 
 ### 2. 配置环境变量
 
 ```bash
 cp .env.example .env
-# 编辑 .env，只需配置以下两项：
+# 编辑 .env，配置 LLM API
 ```
 
 必填配置：
 
 ```env
-# MinIO 存储（自定义密码，8位以上）
-MINIO_ROOT_USER=admin
-MINIO_ROOT_PASSWORD=your-password
-
 # LLM API（三选一）
 
 # 方式 1: OpenRouter
@@ -172,35 +188,37 @@ docker compose up -d
 docker compose ps
 ```
 
-### 4. 验证服务
+### 4. 访问 Web UI
+
+打开浏览器访问: **http://localhost:8501**
+
+### 5. 使用 Web UI 处理 Excel
+
+1. 上传 Excel 文件 (.xlsx/.xls)
+2. 输入自然语言指令（如：将第一列数据按升序排序）
+3. 点击"执行"按钮
+4. 等待处理完成
+5. 下载结果文件
+
+### 6. API 方式（可选）
 
 ```bash
-# 检查各服务健康状态
-curl http://localhost:8646/health   # Hermes Bridge
-curl http://localhost:8080/health   # File Upload Service
-curl http://localhost:9000/minio/health/live  # MinIO
-```
+# 健康检查
+curl http://localhost:8646/health
 
-### 5. 提交任务
-
-```bash
 # 提交文本任务
-curl -X POST http://localhost:8646/api/submit \
+curl -X POST http://localhost:8646/api/task/submit \
   -H "Content-Type: application/json" \
   -d '{"message": "你好，请介绍一下你自己"}'
 
 # 处理 Excel 文件
-# Step 1: 上传文件
-curl -X POST "http://localhost:8080/api/upload?user_id=local_user" \
-  -F "file=@test.xlsx"
-
-# Step 2: 提交处理任务（使用返回的 file_id）
-curl -X POST http://localhost:8646/api/excel \
+curl -X POST http://localhost:8646/api/task/excel \
   -H "Content-Type: application/json" \
-  -d '{"file_id": "file_xxx", "task": "替换第一行为：员工姓名,所属部门,年龄,入职时间,月薪"}'
-
-# Step 3: 下载结果
-curl "http://localhost:8080/api/download/file_xxx.xlsx?user_id=local_user" -o result.xlsx
+  -d '{
+    "file_path": "/app/data/sessions/sess_xxx/uploads/input.xlsx",
+    "task": "将第一列数据按升序排序",
+    "session_id": "sess_xxx"
+  }'
 ```
 
 ---
@@ -209,11 +227,9 @@ curl "http://localhost:8080/api/download/file_xxx.xlsx?user_id=local_user" -o re
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
+| **Web UI** | **8501** | Streamlit 前端界面 |
 | Hermes Bridge | 8646 | 任务提交 API |
-| File Upload | 8080 | 文件上传/下载 API |
 | Hermes Agent | 8645 | Agent 服务（内部） |
-| MinIO API | 9000 | S3 API |
-| MinIO Console | 9001 | Web 管理界面 |
 | Prometheus | 9090 | 监控面板 |
 
 ---
@@ -221,36 +237,54 @@ curl "http://localhost:8080/api/download/file_xxx.xlsx?user_id=local_user" -o re
 ## 项目结构
 
 ```
-Hermes-WeCom-Assistant/
+Hermes-Excel-Assistant/
 ├── docker-compose.yml          # 服务编排
 ├── .env.example                # 环境变量模板
 ├── README.md                   # 项目说明
 ├── config/
-│   ├── hermes-config.yaml     # Hermes 配置
+│   ├── hermes-config.yaml      # Hermes 配置
 │   ├── USER.md                 # Agent 角色设定
 │   └── skills/                 # 技能定义
 ├── services/
-│   ├── file-upload/            # 文件上传服务
+│   ├── web-ui/                 # Streamlit Web UI (Phase 2)
+│   │   ├── Dockerfile
+│   │   ├── app.py              # 主入口
+│   │   ├── components/
+│   │   │   ├── task_runner.py  # 任务执行
+│   │   │   └── downloader.py   # 文件下载
+│   │   ├── pages/
+│   │   │   ├── config.py       # LLM 配置
+│   │   │   └── history.py      # 历史记录
+│   │   └── requirements.txt
+│   ├── hermes-bridge/          # 本地桥接服务
 │   │   ├── Dockerfile
 │   │   ├── app/
 │   │   │   ├── main.py
-│   │   │   ├── models.py
-│   │   │   ├── routers/upload.py
-│   │   │   └── services/minio_client.py
+│   │   │   ├── routers/task.py
+│   │   │   └── services/hermes_client.py
 │   │   └── requirements.txt
-│   └── hermes-bridge/          # 本地桥接服务
-│       ├── Dockerfile
-│       ├── app/
-│       │   ├── main.py
-│       │   ├── routers/task.py
-│       │   └── services/hermes_client.py
-│       └── requirements.txt
+│   └── session_manager/       # 会话管理模块 (Phase 2)
+│       ├── manager.py          # 会话创建/删除
+│       ├── validators.py       # 路径/命令验证
+│       ├── storage.py          # 文件存储
+│       └── schema.sql          # SQLite Schema
 ├── tests/
-│   └── test_full_chain.py      # 全链路测试
+│   ├── e2e/                    # E2E 测试
+│   │   └── test_web_ui.py      # Playwright 测试
+│   ├── session_manager/        # 会话管理测试
+│   │   └── test_validators.py
+│   └── test_storage_chain.py   # 存储链路测试
+├── data/
+│   └── sessions/               # 会话数据目录
+│       └── sess_xxx/
+│           ├── workspace.db
+│           ├── uploads/
+│           └── outputs/
 ├── nginx/                      # 反向代理配置
 ├── prometheus/                 # 监控配置
 └── docs/
     ├── LOCAL_DEV_GUIDE.md      # 本地开发指南
+    ├── design/                 # 设计文档
     ├── plan/                   # 规划文档
     └── tasks/                  # 任务清单
 ```
@@ -264,73 +298,76 @@ Hermes-WeCom-Assistant/
 | 端点 | 方法 | 说明 |
 |------|------|------|
 | `/health` | GET | 健康检查 |
-| `/api/submit` | POST | 提交文本任务 |
-| `/api/excel` | POST | 处理 Excel 文件 |
-| `/api/status` | GET | Agent 状态 |
+| `/api/task/submit` | POST | 提交文本任务 |
+| `/api/task/excel` | POST | 处理 Excel 文件 |
+| `/api/task/status` | GET | Agent 状态 |
 
-### File Upload API (`:8080`)
+### Excel 处理 API 请求格式
 
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/health` | GET | 健康检查 |
-| `/api/upload` | POST | 上传文件 |
-| `/api/download/{file_id}` | GET | 下载文件 |
-| `/api/info/{file_id}` | GET | 文件信息 |
-| `/api/delete/{file_id}` | DELETE | 删除文件 |
+```json
+{
+  "file_path": "/app/data/sessions/{session_id}/uploads/{filename}",
+  "task": "自然语言处理指令",
+  "session_id": "sess_xxx",
+  "output_dir": "/app/data/sessions/{session_id}/outputs"
+}
+```
 
 ---
 
 ## 测试
 
-### 全链路测试
+### E2E 测试
 
 ```bash
-# 本地模式（模拟处理，无需 LLM API Key）
-python tests/test_full_chain.py --mode local
+# 安装 Playwright
+pip install playwright pytest-playwright
+playwright install chromium
 
-# 完整模式（需要 Hermes Agent + LLM API Key）
-python tests/test_full_chain.py --mode full
+# 运行 E2E 测试
+python tests/e2e/test_web_ui.py
 ```
 
 ### 单元测试
 
 ```bash
-cd services/file-upload
-python -m pytest app/tests/ -v
+# 会话管理测试
+python -m pytest tests/session_manager/ -v
+
+# 存储链路测试
+python tests/test_storage_chain.py
 ```
-
----
-
-## 安全警告
-
-> ⚠️ **当前版本为 MVP 阶段，生产环境不可部署**
-
-### 已知安全限制
-
-| 限制项 | 说明 | 风险等级 |
-|--------|------|----------|
-| local 终端无沙箱 | Agent 执行的代码无进程隔离 | 🔴 Critical |
-| 无认证机制 | API 无身份验证 | 🟡 Medium |
-| SQLite 数据隔离仅逻辑隔离 | 路径白名单可被绕过 | 🟡 Medium |
-
-### 生产部署前必须解决
-
-- [ ] 实现 Docker 终端后端或 gVisor 沙箱
-- [ ] 添加 API 认证机制
-- [ ] 实现路径白名单强制校验
 
 ---
 
 ## 安全设计
 
-| 安全项 | 措施 |
-|--------|------|
-| 沙箱隔离 | `TERMINAL_NETWORK_DISABLED=true` |
-| 文件访问控制 | user_id 绑定验证 |
-| 执行超时 | 300s 强制终止 |
-| 容器资源限制 | CPU 1核 / 内存 2GB |
-| CORS 限制 | 环境变量配置具体域名 |
-| Content-Disposition | RFC 5987 编码防止注入 |
+### 已实现安全措施
+
+| 安全项 | 措施 | 状态 |
+|--------|------|------|
+| Docker 权限隔离 | Agent 容器移除 Docker Socket | ✅ |
+| 命令注入防护 | `shlex.quote()` 转义 Prompt | ✅ |
+| 路径穿越防护 | `validate_path()` 白名单校验 | ✅ |
+| 危险命令拦截 | `validate_prompt()` 黑名单 | ✅ |
+| 会话数据隔离 | 独立目录 + SQLite 数据库 | ✅ |
+| 执行超时 | 300s 强制终止 | ✅ |
+| 容器资源限制 | CPU 1核 / 内存 2GB | ✅ |
+
+### 安全警告
+
+> ⚠️ **当前版本为 MVP 阶段，生产环境需额外加固**
+
+| 限制项 | 说明 | 风险等级 |
+|--------|------|----------|
+| local 终端无沙箱 | Agent 执行的代码无进程隔离 | 🟡 Medium |
+| 无认证机制 | API 无身份验证 | 🟡 Medium |
+
+### 生产部署前建议
+
+- [ ] 实现 Docker 终端后端或 gVisor 沙箱
+- [ ] 添加 API 认证机制
+- [ ] 添加 HTTPS 支持
 
 ---
 
@@ -339,10 +376,11 @@ python -m pytest app/tests/ -v
 | 文档 | 说明 |
 |------|------|
 | [本地开发指南](./docs/LOCAL_DEV_GUIDE.md) | 快速启动、API 使用、故障排除 |
+| [会话隔离设计](./docs/design/session-isolation.md) | 架构设计文档 |
 | [总体规划](./docs/plan/Hermes_WeCom_Excel_Assistant_MVP.md) | MVP 规划方案 |
 | [Phase 1 任务](./docs/tasks/phase1/) | PoC 阶段任务清单 |
+| [Phase 2 任务](./docs/tasks/phase2/) | 产品化阶段任务清单 |
 | [评审报告](./docs/workitems/规划评审分析/) | 双视角评审分析 |
-| [本地化方案评审](./docs/workitems/本地化方案评审分析/本地化方案评审报告_汇总.md) | PoC 验证结论与实施路径 |
 
 ---
 
