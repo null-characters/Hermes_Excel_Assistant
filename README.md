@@ -302,6 +302,7 @@ python -m pytest app/tests/ -v
 | [总体规划](./docs/plan/Hermes_WeCom_Excel_Assistant_MVP.md) | MVP 规划方案 |
 | [任务拆解](./docs/workitems/MVP任务拆解/) | MVP 阶段任务明细 |
 | [评审报告](./docs/workitems/规划评审分析/) | 双视角评审分析 |
+| [本地化方案评审](./docs/workitems/本地化方案评审报告_汇总.md) | PoC 验证结论与实施路径 |
 
 ---
 
