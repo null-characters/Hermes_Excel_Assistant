@@ -301,7 +301,10 @@ class HermesClient:
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         line = ansi_escape.sub('', line)
         # 去除回车符
-        line = line.replace('\r', '').strip()
+        line = line.replace('\r', '')
+        # 检查前导空格（Hermes 响应内容以 4 个空格缩进）
+        is_indented = line.startswith('    ')
+        line = line.strip()
         if not line:
             return None
         
@@ -346,11 +349,21 @@ class HermesClient:
         elif set(line) <= {'─', ' ', '╭', '╰', '╮', '╯', '│', '┆', '┊', ' '}:
             return None
         
-        # Agent 响应内容（缩进的中文内容，非日志行）
-        elif line.startswith('    ') and any('\u4e00' <= c <= '\u9fff' for c in line):
+        # Agent 响应内容（缩进的内容，非日志行）
+        # Hermes 响应格式: "    OK" 或 "    这是中文回复"
+        elif is_indented:
             content = line.strip()
-            # 排除包含特殊符号的行
-            if content and '┊' not in content and '│' not in content and '$' not in content and 'DEBUG' not in content and 'INFO' not in content:
+            # 排除包含特殊符号的行、日志行、边框行
+            if (content and
+                '┊' not in content and '│' not in content and
+                '$' not in content and 'DEBUG' not in content and
+                'INFO' not in content and 'WARNING' not in content and
+                'Hermes' not in content and
+                not content.startswith('Resume') and
+                not content.startswith('Session:') and
+                not content.startswith('Duration:') and
+                not content.startswith('Messages:') and
+                not re.match(r'^\d{2}:\d{2}:\d{2}', content)):  # 排除时间戳开头的日志
                 return {"type": "response", "content": f"🤖 {content}"}
         
         # API 调用 - "API call #N: model=..."

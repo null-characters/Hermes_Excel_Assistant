@@ -283,7 +283,7 @@ def show_main_content():
         ):
             event_type = event.get("type", "")
             content = event.get("content", "")
-            
+
             if event_type == "progress":
                 add_log(content, "progress")
                 # 根据进度更新步骤
