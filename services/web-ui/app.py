@@ -303,6 +303,7 @@ def show_main_content():
         final_output = ""
         final_error = ""
         task_success = False
+        last_error = ""  # 记录最后一个错误，但不直接作为最终错误
         
         for event in task_runner.run_task_stream(
             session_id=st.session_state.session_id,
@@ -358,7 +359,7 @@ def show_main_content():
             
             elif event_type == "error":
                 add_log(content, "error")
-                final_error = content
+                last_error = content  # 记录但不直接作为最终错误
             
             elif event_type == "done":
                 add_log(content, "done")
@@ -366,15 +367,16 @@ def show_main_content():
                 update_steps(3)
         
         # 记录任务结果
+        # 只有当任务未成功完成时，最后的错误才作为最终错误
+        if not task_success:
+            final_error = last_error
+        
         result = {
-            "success": task_success and not final_error,
+            "success": task_success,
             "output": final_output,
             "error": final_error if final_error else None,
             "message": "任务执行完成" if task_success else "任务执行失败"
         }
-        
-        if not task_success and not final_error:
-            result["error"] = "未知错误"
         
         st.session_state.task_history.append({
             "instruction": instruction,
