@@ -3,11 +3,13 @@ Excel 智能助手 - Web UI
 ========================
 
 Streamlit 应用主入口。
+支持 SSE 流式输出，实时显示 Agent 处理进度。
 """
 
 import streamlit as st
 import os
 import uuid
+import time
 from pathlib import Path
 
 from components.task_runner import TaskRunner, get_task_runner
@@ -37,6 +39,43 @@ st.markdown("""
         border-radius: 5px;
         margin-bottom: 10px;
     }
+    .progress-log {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        padding: 16px;
+        border-radius: 8px;
+        font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    .progress-log .progress-line { color: #569cd6; }
+    .progress-log .tool-line { color: #dcdcaa; }
+    .progress-log .output-line { color: #ce9178; }
+    .progress-log .error-line { color: #f44747; }
+    .progress-log .done-line { color: #6a9955; font-weight: bold; }
+    .progress-log .thinking-line { color: #c586c0; font-style: italic; }
+    .progress-log .tool-result-line { color: #4ec9b0; }
+    .progress-log .api-call-line { color: #9cdcfe; font-size: 11px; }
+    .progress-log .init-line { color: #6a9955; font-size: 11px; }
+    .progress-log .log-line { color: #808080; font-size: 11px; }
+    .progress-log .response-line { color: #dcdcaa; font-weight: bold; }
+    .step-indicator {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 24px;
+        margin-right: 8px;
+        font-size: 12px;
+    }
+    .step-active { background-color: #ffa500; color: white; }
+    .step-done { background-color: #4caf50; color: white; }
+    .step-pending { background-color: #e0e0e0; color: #999; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -121,7 +160,7 @@ def show_sidebar():
             1. 上传 Excel 文件 (.xlsx/.xls)
             2. 输入处理指令
             3. 点击"执行"按钮
-            4. 等待处理完成
+            4. 实时查看处理进度
             5. 下载结果文件
             """)
 
@@ -182,17 +221,156 @@ def show_main_content():
     with col2:
         clear_button = st.button("🗑️ 清空", use_container_width=True)
     
-    # 执行任务
+    # 执行任务（流式模式）
     if execute_button and uploaded_file and instruction:
         task_runner = get_task_runner()
         
-        with st.spinner("处理中..."):
-            result = task_runner.run_task(
-                session_id=st.session_state.session_id,
-                uploaded_file=uploaded_file,
-                instruction=instruction,
-                data_path=DATA_PATH
-            )
+        # 进度步骤指示器
+        st.markdown("### 📋 处理进度")
+        step_cols = st.columns(4)
+        steps = [
+            {"label": "上传", "icon": "1", "status": "active"},
+            {"label": "分析", "icon": "2", "status": "pending"},
+            {"label": "处理", "icon": "3", "status": "pending"},
+            {"label": "完成", "icon": "4", "status": "pending"},
+        ]
+        
+        step_placeholders = []
+        for i, step in enumerate(steps):
+            with step_cols[i]:
+                ph = st.empty()
+                step_placeholders.append(ph)
+        
+        # 更新步骤状态
+        def update_steps(current_step: int):
+            labels = ["📤 上传", "🧠 分析", "⚙️ 处理", "✅ 完成"]
+            for i, ph in enumerate(step_placeholders):
+                if i < current_step:
+                    ph.markdown(f"**{labels[i]}** ✅")
+                elif i == current_step:
+                    ph.markdown(f"**{labels[i]}** 🔄")
+                else:
+                    ph.markdown(f"~~{labels[i]}~~ ⏳")
+        
+        update_steps(0)
+        
+        # 实时日志区域
+        log_placeholder = st.empty()
+        log_lines = []
+        start_time = time.time()
+        
+        def add_log(line: str, line_type: str = ""):
+            """添加日志行"""
+            elapsed = time.time() - start_time
+            timestamp = f"[{elapsed:.1f}s]"
+            if line_type == "progress":
+                log_lines.append(f'<span class="progress-line">{timestamp} {line}</span>')
+            elif line_type == "tool":
+                log_lines.append(f'<span class="tool-line">{timestamp} {line}</span>')
+            elif line_type == "tool_result":
+                log_lines.append(f'<span class="tool-result-line">{timestamp} {line}</span>')
+            elif line_type == "thinking":
+                log_lines.append(f'<span class="thinking-line">{timestamp} {line}</span>')
+            elif line_type == "api_call":
+                log_lines.append(f'<span class="api-call-line">{timestamp} {line}</span>')
+            elif line_type == "init":
+                log_lines.append(f'<span class="init-line">{timestamp} {line}</span>')
+            elif line_type == "response":
+                log_lines.append(f'<span class="response-line">{timestamp} {line}</span>')
+            elif line_type == "output":
+                log_lines.append(f'<span class="output-line">{timestamp} {line}</span>')
+            elif line_type == "error":
+                log_lines.append(f'<span class="error-line">{timestamp} {line}</span>')
+            elif line_type == "done":
+                log_lines.append(f'<span class="done-line">{timestamp} {line}</span>')
+            elif line_type == "log":
+                log_lines.append(f'<span class="log-line">{timestamp} {line}</span>')
+            else:
+                log_lines.append(f'{timestamp} {line}')
+            
+            log_placeholder.markdown(
+                f'<div class="progress-log">{"".join(log_lines)}</div>',
+                unsafe_allow_html=True
+        )
+        
+        add_log("🚀 任务启动...", "progress")
+        
+        # 流式执行
+        final_output = ""
+        final_error = ""
+        task_success = False
+        
+        for event in task_runner.run_task_stream(
+            session_id=st.session_state.session_id,
+            uploaded_file=uploaded_file,
+            instruction=instruction,
+            data_path=DATA_PATH
+        ):
+            event_type = event.get("type", "")
+            content = event.get("content", "")
+            
+            if event_type == "progress":
+                add_log(content, "progress")
+                # 根据进度更新步骤
+                if "分析" in content or "初始化" in content:
+                    update_steps(1)
+                elif "处理" in content or "工具" in content or "执行" in content:
+                    update_steps(2)
+                elif "完成" in content:
+                    update_steps(3)
+            
+            elif event_type == "init":
+                add_log(content, "init")
+                update_steps(1)
+            
+            elif event_type == "thinking":
+                add_log(content, "thinking")
+                update_steps(2)
+            
+            elif event_type == "tool":
+                add_log(content, "tool")
+                update_steps(2)
+            
+            elif event_type == "tool_result":
+                add_log(content, "tool_result")
+            
+            elif event_type == "response":
+                add_log(content, "response")
+                update_steps(2)
+            
+            elif event_type == "api_call":
+                add_log(content, "api_call")
+            
+            elif event_type == "output":
+                # 输出可能很长，只显示摘要
+                if len(content) > 500:
+                    add_log(f"📝 输出内容（{len(content)} 字符）...", "output")
+                else:
+                    add_log(f"📝 {content}", "output")
+                final_output = content
+            
+            elif event_type == "log":
+                add_log(content, "log")
+            
+            elif event_type == "error":
+                add_log(content, "error")
+                final_error = content
+            
+            elif event_type == "done":
+                add_log(content, "done")
+                task_success = True
+                update_steps(3)
+        
+        # 记录任务结果
+        result = {
+            "success": task_success and not final_error,
+            "output": final_output,
+            "error": final_error if final_error else None,
+            "message": "任务执行完成" if task_success else "任务执行失败"
+        }
+        
+        if not task_success and not final_error:
+            result["error"] = "未知错误"
         
         st.session_state.task_history.append({
             "instruction": instruction,
@@ -200,10 +378,12 @@ def show_main_content():
             "file_name": uploaded_file.name
         })
         
+        # 显示最终结果
+        st.divider()
         if result["success"]:
             st.success("✅ 处理完成!")
-            if result.get("output"):
-                st.text(result["output"])
+            elapsed = time.time() - start_time
+            st.caption(f"⏱️ 总耗时: {elapsed:.1f}s")
         else:
             st.error(f"❌ 处理失败: {result.get('error', '未知错误')}")
     
@@ -225,6 +405,8 @@ def show_main_content():
             with st.expander(f"任务 {len(st.session_state.task_history) - i}: {task['instruction'][:50]}..."):
                 st.markdown(f"**文件:** {task['file_name']}")
                 st.markdown(f"**状态:** {'✅ 成功' if task['result']['success'] else '❌ 失败'}")
+                if task['result'].get('output'):
+                    st.code(task['result']['output'][:1000], language="text")
 
 
 def main():
