@@ -108,34 +108,8 @@ def init_session_state():
 def show_sidebar():
     """显示侧边栏"""
     with st.sidebar:
-        st.header("⚙️ LLM 配置")
-        
-        api_key = st.text_input(
-            "API Key",
-            value=st.session_state.config.get("api_key", ""),
-            type="password",
-            key="sidebar_api_key"
-        )
-        
-        base_url = st.text_input(
-            "API Base URL",
-            value=st.session_state.config.get("base_url", "https://api.openai.com/v1"),
-            key="sidebar_base_url"
-        )
-        
-        model = st.text_input(
-            "Model",
-            value=st.session_state.config.get("model", "gpt-4"),
-            key="sidebar_model"
-        )
-        
-        if st.button("保存配置", type="primary"):
-            st.session_state.config = {
-                "api_key": api_key,
-                "base_url": base_url,
-                "model": model
-            }
-            st.success("✅ 配置已保存")
+        st.header("⚙️ 配置说明")
+        st.info("请在项目根目录的 `.env` 文件中配置 LLM API Key 和模型参数")
         
         st.divider()
         
