@@ -69,11 +69,13 @@ CREATE TABLE files (
 
 ## 验收清单
 
-- [ ] `data/sessions/` 目录结构已定义
-- [ ] SQLite Schema 已创建并可执行
-- [ ] `session_manager.py` 可创建会话目录
-- [ ] 路径白名单校验生效（拒绝 `..` 路径）
-- [ ] 危险命令黑名单校验生效
+- [x] `data/sessions/` 目录结构已定义
+- [x] SQLite Schema 已创建并可执行
+- [x] `session_manager.py` 可创建会话目录
+- [x] 路径白名单校验生效（拒绝 `..` 路径）
+- [x] 危险命令黑名单校验生效
+
+> ✅ **CP2 检查点已通过** (2026-05-15)
 
 ---
 

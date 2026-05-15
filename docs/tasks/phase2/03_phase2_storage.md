@@ -23,12 +23,14 @@
 
 ## 验收清单
 
-- [ ] 上传文件保存到 `data/sessions/{session_id}/uploads/`
-- [ ] 下载文件从 `data/sessions/{session_id}/outputs/` 返回
-- [ ] SQLite workspace.db 包含文件元数据
-- [ ] Bridge prompt 包含文件绝对路径
-- [ ] docker-compose.yml 无 MinIO 服务
-- [ ] 上传 → 处理 → 下载全流程通过
+- [x] 上传文件保存到 `data/sessions/{session_id}/uploads/`
+- [x] 下载文件从 `data/sessions/{session_id}/outputs/` 返回
+- [x] SQLite workspace.db 包含文件元数据
+- [x] Bridge prompt 包含文件绝对路径
+- [x] docker-compose.yml 无 MinIO 服务
+- [x] 上传 → 处理 → 下载全流程通过
+
+> ✅ **CP2 检查点已通过** (2026-05-15)
 
 ---
 
