@@ -312,6 +312,11 @@ def show_main_content():
             elif event_type == "response":
                 add_log(content, "response")
                 update_steps(2)
+                # 收集响应内容作为最终输出
+                if final_output:
+                    final_output += "\n" + content
+                else:
+                    final_output = content
             
             elif event_type == "api_call":
                 add_log(content, "api_call")
@@ -360,6 +365,10 @@ def show_main_content():
             st.success("✅ 处理完成!")
             elapsed = time.time() - start_time
             st.caption(f"⏱️ 总耗时: {elapsed:.1f}s")
+            # 显示 Agent 响应内容
+            if result.get("output"):
+                st.markdown("#### 🤖 Agent 响应")
+                st.markdown(result["output"])
         else:
             st.error(f"❌ 处理失败: {result.get('error', '未知错误')}")
     
