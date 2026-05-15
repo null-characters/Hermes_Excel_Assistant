@@ -37,9 +37,14 @@ class TaskResponse(BaseModel):
 
 
 class ExcelTaskRequest(BaseModel):
-    """Excel 处理任务请求"""
-    file_path: Optional[str] = Field(None, description="文件在容器内的绝对路径（可选）")
-    task: str = Field(..., description="处理任务描述")
+    """Excel/文件处理任务请求
+
+    file_path 可选：
+    - 有值：处理指定文件，生成结构化 prompt
+    - 无值：直接对话模式，task 作为原始指令发送给 Agent
+    """
+    file_path: Optional[str] = Field(None, description="文件在容器内的绝对路径（可选，不传则直接对话）")
+    task: str = Field(..., description="处理任务描述或对话内容")
     session_id: str = Field(..., description="会话 ID")
     output_dir: Optional[str] = Field(None, description="输出目录路径")
     timeout: Optional[int] = Field(None, description="超时时间（秒）")

@@ -513,7 +513,12 @@ class HermesClient:
         session_id: str,
         output_dir: Optional[str] = None
     ) -> HermesResponse:
-        """处理文件或纯文本任务（同步模式）"""
+        """处理文件或纯文本任务（同步模式）
+
+    file_path 可选：
+    - 有值：生成包含文件路径和输出目录的结构化 prompt
+    - 无值：直接将 task 作为指令发送给 Agent（直接对话模式）
+    """
         if output_dir is None:
             output_dir = f"/app/data/sessions/{session_id}/outputs"
 
@@ -548,7 +553,12 @@ class HermesClient:
         session_id: str,
         output_dir: Optional[str] = None
     ) -> AsyncGenerator[dict[str, Any], None]:
-        """处理文件或纯文本任务（流式模式）"""
+        """处理文件或纯文本任务（流式模式）
+
+    file_path 可选：
+    - 有值：生成包含文件路径和输出目录的结构化 prompt
+    - 无值：直接将 task 作为指令发送给 Agent（直接对话模式）
+    """
         if output_dir is None:
             output_dir = f"/app/data/sessions/{session_id}/outputs"
 

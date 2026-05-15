@@ -4,7 +4,7 @@
 
 ## 项目简介
 
-利用 Hermes Agent 的自主代理能力，为文职人员提供智能文件处理助手。用户通过 **Web UI** 或 API 上传文件，发送自然语言指令，系统自动完成数据清洗、汇总、分析或内容提取，并返回处理后的结果文件。
+利用 Hermes Agent 的自主代理能力，为文职人员提供智能文件处理助手。用户通过 **Web UI** 或 API 上传文件并发送自然语言指令，系统自动完成数据清洗、汇总、分析或内容提取，并返回处理后的结果文件。也支持**不上传文件直接对话**，向 Agent 提问获取帮助。
 
 **支持文件格式**: Excel (.xlsx/.xls)、Word (.docx/.doc)、PPT (.pptx/.ppt)、PDF、CSV、JSON、TXT、图片等
 
@@ -196,13 +196,21 @@ docker compose ps
 
 打开浏览器访问: **http://localhost:8501**
 
-### 5. 使用 Web UI 处理文件
+### 5. 使用 Web UI
 
-1. 上传文件（支持 Excel/Word/PPT/PDF/CSV/JSON/TXT/图片等）
-2. 输入自然语言指令（如：将第一列数据按升序排序）
-3. 点击"执行"按钮
-4. 等待处理完成
-5. 下载结果文件
+**两种使用模式**：
+
+1. **文件处理模式**：
+   - 上传文件（支持 Excel/Word/PPT/PDF/CSV/JSON/TXT/图片等）
+   - 输入自然语言指令（如：将第一列数据按升序排序）
+   - 点击"执行"按钮
+   - 等待处理完成，查看 Agent 响应
+   - 下载结果文件
+
+2. **直接对话模式**（无需上传文件）：
+   - 直接在指令框输入问题（如：在 Excel 中如何快速求和？）
+   - 点击"执行"按钮
+   - 查看 Agent 响应内容
 
 ### 6. API 方式（可选）
 
@@ -216,11 +224,19 @@ curl -X POST http://localhost:8646/api/task/submit \
   -d '{"message": "你好，请介绍一下你自己"}'
 
 # 处理文件（流式响应，实时显示思考过程）
-curl -N -X POST http://localhost:8646/api/task/stream \
+curl -N -X POST http://localhost:8646/api/excel/stream \
   -H "Content-Type: application/json" \
   -d '{
     "file_path": "/app/data/sessions/sess_xxx/uploads/input.xlsx",
     "task": "将第一列数据按升序排序",
+    "session_id": "sess_xxx"
+  }'
+
+# 直接对话（无需文件）
+curl -N -X POST http://localhost:8646/api/excel/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "在 Excel 中如何快速将二维数据表转换为柱状图？",
     "session_id": "sess_xxx"
   }'
 
@@ -336,6 +352,8 @@ Hermes_Work_Assistant/
   "output_dir": "/app/data/sessions/{session_id}/outputs"
 }
 ```
+
+> `file_path` 为可选字段，不传时直接将 `task` 作为指令发送给 Agent，适用于纯对话场景。
 
 ### 流式响应格式
 

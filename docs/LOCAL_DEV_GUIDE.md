@@ -135,6 +135,18 @@ curl -N -X POST http://localhost:8646/api/excel/stream \
   }'
 ```
 
+#### 直接对话（无需文件）
+
+```bash
+# 不上传文件，直接向 Agent 提问
+curl -N -X POST http://localhost:8646/api/excel/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "在 Excel 中如何快速求和？",
+    "session_id": "chat_test"
+  }'
+```
+
 **响应格式**（Server-Sent Events）：
 ```
 data: {"type":"thinking","content":"💭 让我先检查一下这个Excel文件..."}

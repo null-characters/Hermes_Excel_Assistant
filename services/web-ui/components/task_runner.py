@@ -101,9 +101,13 @@ class TaskRunner:
     ) -> Generator[dict, None, None]:
         """
         执行任务（SSE 流式模式）
-        
+
+        uploaded_file 可选：
+        - 有值：保存文件并传递 file_path 给后端
+        - 无值：直接对话模式，不传 file_path
+
         实时返回 Agent 处理进度，用于前端实时显示。
-        
+
         Yields:
             dict: 事件消息
                 - type: "progress" | "tool" | "output" | "error" | "done"
