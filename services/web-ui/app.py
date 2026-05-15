@@ -1,6 +1,6 @@
 """
-Excel 智能助手 - Web UI
-========================
+Hermes Work Assistant - Web UI
+==============================
 
 Streamlit 应用主入口。
 支持 SSE 流式输出，实时显示 Agent 处理进度。
@@ -20,7 +20,7 @@ DATA_PATH = Path(os.getenv("SESSION_BASE_PATH", "/app/data/sessions"))
 
 # 页面配置
 st.set_page_config(
-    page_title="Excel 智能助手",
+    page_title="Hermes Work Assistant",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"

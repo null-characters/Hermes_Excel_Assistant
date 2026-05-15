@@ -1,4 +1,4 @@
-# Prometheus 告警规则 - Hermes WeCom Excel Assistant
+# Prometheus 告警规则 - Hermes Work Assistant
 
 groups:
   - name: service_health

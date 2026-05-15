@@ -11,7 +11,7 @@ from pathlib import Path
 from dotenv import load_dotenv, set_key
 
 st.set_page_config(
-    page_title="配置 - Excel 智能助手",
+    page_title="配置 - Hermes Work Assistant",
     page_icon="⚙️",
     layout="wide"
 )

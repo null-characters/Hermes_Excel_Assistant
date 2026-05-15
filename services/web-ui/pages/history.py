@@ -9,7 +9,7 @@ import streamlit as st
 from pathlib import Path
 
 st.set_page_config(
-    page_title="历史记录 - Excel 智能助手",
+    page_title="历史记录 - Hermes Work Assistant",
     page_icon="📜",
     layout="wide"
 )

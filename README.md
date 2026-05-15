@@ -151,8 +151,8 @@ data/sessions/
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/null-characters/Hermes-Excel-Assistant.git
-cd Hermes-Excel-Assistant
+git clone https://github.com/null-characters/Hermes_Work_Assistant.git
+cd Hermes_Work_Assistant
 ```
 
 ### 2. 配置环境变量
@@ -261,7 +261,7 @@ curl -X POST http://localhost:8646/api/task/excel \
 ## 项目结构
 
 ```
-Hermes-Excel-Assistant/
+Hermes_Work_Assistant/
 ├── docker-compose.yml          # 服务编排
 ├── .env.example                # 环境变量模板
 ├── README.md                   # 项目说明
