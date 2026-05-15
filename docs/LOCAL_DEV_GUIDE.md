@@ -245,11 +245,14 @@ docker compose restart hermes-agent
 ### Q: LLM API 调用失败？
 
 ```bash
-# 检查 API Key 配置
-docker exec hermes-agent cat /root/.hermes/config.yaml
+# 检查配置（注意：Hermes 配置目录是 /opt/data/ 而非 /root/.hermes/）
+docker exec hermes-agent /opt/hermes/.venv/bin/hermes config show
 
 # 查看 Agent 日志
 docker logs hermes-agent --tail 100 | grep -i error
+
+# 查看错误日志
+docker exec hermes-agent tail -50 /opt/data/logs/errors.log
 ```
 
 ### Q: 端口被占用？
@@ -304,3 +307,92 @@ docker exec hermes-agent /opt/hermes/.venv/bin/hermes --help
 - [README.md](../README.md) - 项目总览
 - [API 文档](http://localhost:8646/docs) - Swagger UI
 - [评审报告](./workitems/规划评审分析/) - 双视角评审分析
+
+---
+
+## 故障排除记录
+
+> 记录配置过程中遇到的问题及解决方案
+
+### 问题 1: Hermes 配置目录误解
+
+**现象**: 修改 `config/config.yaml` 不生效，Hermes 仍使用默认配置。
+
+**原因**: Hermes Agent 镜像的配置目录是 `/opt/data/`，而非 `/root/.hermes/`。
+
+**解决**: 创建 `config/hermes-config.yaml` 挂载到 `/opt/data/config.yaml`：
+```yaml
+# docker-compose.yml
+volumes:
+  - ./config/hermes-config.yaml:/opt/data/config.yaml:ro
+```
+
+---
+
+### 问题 2: 腾讯云 GLM-5 配置
+
+**现象**: 使用 `HERMES_PROVIDER=openai` + `OPENAI_BASE_URL` 调用腾讯云 GLM-5 失败，报 401 错误。
+
+**原因**: 
+1. Hermes 内置的 `zai` provider 连接智谱官方 API，不适用于腾讯云托管端点
+2. 需要使用 `custom` provider 指定自定义端点
+
+**解决**: 
+```yaml
+# config/hermes-config.yaml
+model:
+  default: "glm-5"
+  provider: "custom"
+  base_url: "https://api.lkeap.cloud.tencent.com/coding/v3"
+```
+
+```env
+# .env
+HERMES_PROVIDER=custom
+HERMES_MODEL=glm-5
+OPENAI_API_KEY=sk-sp-xxx  # custom provider 使用 OPENAI_API_KEY
+```
+
+---
+
+### 问题 3: Docker 终端后端兼容性
+
+**现象**: 终端工具执行失败，报错 `exit status 125`。
+
+**原因**: Hermes Docker 终端使用大量安全参数（`--cap-drop`, `--security-opt`, `--pids-limit` 等），在 Docker Desktop 环境下不兼容。
+
+**解决**: 改用 `local` 终端后端：
+```yaml
+# config/hermes-config.yaml
+terminal:
+  backend: local
+  timeout: 300
+```
+
+> ⚠️ 生产环境应使用 Docker 后端以获得更好隔离性。
+
+---
+
+### 问题 4: 环境变量命名
+
+**现象**: 设置 `HERMES_PROVIDER` 不生效。
+
+**原因**: Hermes 内部使用 `HERMES_INFERENCE_PROVIDER`，但 `hermes config set` 命令会正确处理。
+
+**解决**: 通过挂载配置文件直接覆盖，而非依赖环境变量：
+```yaml
+# config/hermes-config.yaml
+model:
+  provider: "custom"
+```
+
+---
+
+### 问题 5: 从容器提取文件
+
+**现象**: Excel 文件生成在容器内，本地无法访问。
+
+**解决**: 使用 `docker cp` 提取：
+```bash
+docker cp hermes-agent:/tmp/sales.xlsx ./data/sales.xlsx
+```
