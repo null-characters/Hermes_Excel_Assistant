@@ -46,11 +46,15 @@ st.markdown("""
         border-radius: 8px;
         font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
         font-size: 13px;
-        line-height: 1.6;
-        max-height: 400px;
+        line-height: 1.8;
+        max-height: 500px;
         overflow-y: auto;
         white-space: pre-wrap;
         word-break: break-word;
+    }
+    .progress-log > div {
+        padding: 2px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
     .progress-log .progress-line { color: #569cd6; }
     .progress-log .tool-line { color: #dcdcaa; }
@@ -264,29 +268,29 @@ def show_main_content():
             elapsed = time.time() - start_time
             timestamp = f"[{elapsed:.1f}s]"
             if line_type == "progress":
-                log_lines.append(f'<span class="progress-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="progress-line">{timestamp} {line}</div>')
             elif line_type == "tool":
-                log_lines.append(f'<span class="tool-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="tool-line">{timestamp} {line}</div>')
             elif line_type == "tool_result":
-                log_lines.append(f'<span class="tool-result-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="tool-result-line">{timestamp} {line}</div>')
             elif line_type == "thinking":
-                log_lines.append(f'<span class="thinking-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="thinking-line">{timestamp} {line}</div>')
             elif line_type == "api_call":
-                log_lines.append(f'<span class="api-call-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="api-call-line">{timestamp} {line}</div>')
             elif line_type == "init":
-                log_lines.append(f'<span class="init-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="init-line">{timestamp} {line}</div>')
             elif line_type == "response":
-                log_lines.append(f'<span class="response-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="response-line">{timestamp} {line}</div>')
             elif line_type == "output":
-                log_lines.append(f'<span class="output-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="output-line">{timestamp} {line}</div>')
             elif line_type == "error":
-                log_lines.append(f'<span class="error-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="error-line">{timestamp} {line}</div>')
             elif line_type == "done":
-                log_lines.append(f'<span class="done-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="done-line">{timestamp} {line}</div>')
             elif line_type == "log":
-                log_lines.append(f'<span class="log-line">{timestamp} {line}</span>')
+                log_lines.append(f'<div class="log-line">{timestamp} {line}</div>')
             else:
-                log_lines.append(f'{timestamp} {line}')
+                log_lines.append(f'<div>{timestamp} {line}</div>')
             
             log_placeholder.markdown(
                 f'<div class="progress-log">{"".join(log_lines)}</div>',
