@@ -29,10 +29,6 @@ st.set_page_config(
 # 自定义样式
 st.markdown("""
 <style>
-    .stApp {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
     .session-info {
         background-color: #f0f2f6;
         padding: 10px;

@@ -73,3 +73,65 @@ async def health_check():
         "service": "hermes-bridge",
         "hermes_available": hermes_client.is_available() if hermes_client else False
     }
+
+
+@app.get("/api/smoke-test")
+async def smoke_test():
+    """
+    冒烟测试 - 验证 LLM API 是否可用
+
+    发送简单提示词测试 LLM 连接是否正常
+    """
+    import os
+
+    # 检查环境变量是否配置
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    model = os.getenv("HERMES_MODEL", "")
+
+    if not api_key or api_key == "your-api-key-here":
+        return {
+            "success": False,
+            "error": "API Key 未配置",
+            "detail": "请在 .env 文件中设置 OPENAI_API_KEY"
+        }
+
+    if not model:
+        return {
+            "success": False,
+            "error": "模型未配置",
+            "detail": "请在 .env 文件中设置 HERMES_MODEL"
+        }
+
+    # 检查 Hermes Agent 是否可用
+    if not hermes_client or not hermes_client.is_available():
+        return {
+            "success": False,
+            "error": "Hermes Agent 不可用",
+            "detail": "请确保 hermes-agent 容器正在运行"
+        }
+
+    # 执行简单测试
+    try:
+        response = await hermes_client.execute_task(
+            prompt="请回复'OK'两个字符，不要输出其他内容。",
+            timeout=30
+        )
+
+        if response.success:
+            return {
+                "success": True,
+                "model": model,
+                "response": response.output[:100] if response.output else "OK"
+            }
+        else:
+            return {
+                "success": False,
+                "error": "LLM 调用失败",
+                "detail": response.error or response.message
+            }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": "测试异常",
+            "detail": str(e)
+        }
