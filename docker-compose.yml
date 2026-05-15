@@ -117,7 +117,9 @@ services:
 
   # Web UI - Streamlit 前端 (T02-29)
   web-ui:
-    build: ./services/web-ui
+    build:
+      context: ./services
+      dockerfile: web-ui/Dockerfile
     container_name: hermes-web-ui
     ports:
       - "8501:8501"
