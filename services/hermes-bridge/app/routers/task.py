@@ -35,9 +35,10 @@ class TaskResponse(BaseModel):
 
 class ExcelTaskRequest(BaseModel):
     """Excel 处理任务请求"""
-    file_id: str = Field(..., description="文件 ID")
+    file_path: str = Field(..., description="文件在容器内的绝对路径")
     task: str = Field(..., description="处理任务描述")
-    user_id: str = Field(default="local_user", description="用户 ID")
+    session_id: str = Field(..., description="会话 ID")
+    output_dir: Optional[str] = Field(None, description="输出目录路径")
     timeout: Optional[int] = Field(None, description="超时时间（秒）")
 
 
@@ -99,9 +100,10 @@ async def process_excel(
     示例请求：
     ```json
     {
-        "file_id": "file_20260515_xxx",
+        "file_path": "/app/data/sessions/sess_xxx/uploads/example.xlsx",
         "task": "替换第一行数据为：员工姓名,所属部门,年龄,入职时间,月薪",
-        "user_id": "local_user"
+        "session_id": "sess_xxx",
+        "output_dir": "/app/data/sessions/sess_xxx/outputs"
     }
     ```
     """
@@ -113,12 +115,13 @@ async def process_excel(
             detail="Hermes Agent 服务不可用"
         )
     
-    logger.info(f"收到 Excel 处理请求: {excel_request.file_id} - {excel_request.task[:50]}...")
+    logger.info(f"收到 Excel 处理请求: {excel_request.file_path} - {excel_request.task[:50]}...")
     
     result = await hermes_client.process_excel(
-        file_id=excel_request.file_id,
+        file_path=excel_request.file_path,
         task=excel_request.task,
-        user_id=excel_request.user_id
+        session_id=excel_request.session_id,
+        output_dir=excel_request.output_dir
     )
     
     return TaskResponse(
