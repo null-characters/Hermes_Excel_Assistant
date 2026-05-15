@@ -312,11 +312,13 @@ def show_main_content():
             elif event_type == "response":
                 add_log(content, "response")
                 update_steps(2)
-                # 收集响应内容作为最终输出
-                if final_output:
-                    final_output += "\n" + content
-                else:
-                    final_output = content
+                # 收集响应内容作为最终输出（去掉 emoji 前缀）
+                actual_content = content.replace("🤖 ", "").strip()
+                if actual_content:
+                    if final_output:
+                        final_output += "\n" + actual_content
+                    else:
+                        final_output = actual_content
             
             elif event_type == "api_call":
                 add_log(content, "api_call")
