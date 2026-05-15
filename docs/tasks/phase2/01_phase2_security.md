@@ -22,11 +22,13 @@
 
 ## 验收清单
 
-- [ ] `docker-compose.yml` 中 hermes-agent 无 Docker Socket 挂载
-- [ ] `hermes_client.py` 中 prompt 使用 `shlex.quote()` 转义
-- [ ] `config/config.yaml` 和 `config/nodes.json` 已删除
-- [ ] README.md 包含安全警告章节
-- [ ] Agent 容器无法执行 `docker ps`
+- [x] `docker-compose.yml` 中 hermes-agent 无 Docker Socket 挂载
+- [x] `hermes_client.py` 中 prompt 使用 `shlex.quote()` 转义
+- [x] `config/config.yaml` 和 `config/nodes.json` 已删除
+- [x] README.md 包含安全警告章节
+- [x] Agent 容器无法执行 `docker ps`
+
+> ✅ **CP1 检查点已通过** (2026-05-15)
 
 ---
 
