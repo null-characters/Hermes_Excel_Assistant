@@ -206,20 +206,33 @@ class HermesClient:
     
     async def process_excel(
         self,
-        file_id: str,
+        file_path: str,
         task: str,
-        user_id: str = "local_user"
+        session_id: str,
+        output_dir: Optional[str] = None
     ) -> HermesResponse:
         """
-        处理 Excel 文件
-        
+        处理 Excel 文件（本地文件路径注入）
+
         Args:
-            file_id: 文件 ID
+            file_path: 文件在容器内的绝对路径
             task: 处理任务描述
-            user_id: 用户 ID
-        
+            session_id: 会话 ID
+            output_dir: 输出目录路径
+
         Returns:
             HermesResponse: 处理结果
         """
-        prompt = f"处理 {file_id} {task}"
-        return await self.send_message(prompt, file_id, user_id)
+        # T02-16: 注入文件路径到 prompt
+        if output_dir is None:
+            output_dir = f"/app/data/sessions/{session_id}/outputs"
+
+        prompt = (
+            f"请处理以下 Excel 文件：\n"
+            f"- 文件路径: {file_path}\n"
+            f"- 任务要求: {task}\n"
+            f"- 请将结果保存到: {output_dir}/result.xlsx\n"
+            f"- 如果有多个结果，可以保存为多个文件到 {output_dir}/ 目录"
+        )
+
+        return await self.execute_task(prompt)

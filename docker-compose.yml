@@ -1,15 +1,17 @@
 # ===========================================
-# Hermes Excel Assistant - 本地化方案
+# Hermes Excel Assistant - 本地化方案 (Phase 2)
 # ===========================================
 # 服务编排配置
 #
 # 核心服务：
 # - hermes-bridge (8646): 任务提交 API，本地 REST 接口
 # - hermes-agent (8645): LLM Agent 核心，通过 docker exec 调用
-# - file-upload (8080): 文件上传/下载服务
-# - minio (9000/9001): 对象存储 + Web 管理界面
 # - prometheus (9090): 监控面板
 # - nginx-proxy (80/443): 反向代理（可选）
+#
+# 已移除服务（Phase 2 简化）：
+# - minio: 对象存储 → 改用本地文件系统
+# - file-upload: 文件服务 → 改用 session_manager 模块
 #
 # 使用方式：
 #   docker compose up -d           # 启动所有服务
@@ -31,7 +33,6 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
       - hermes
-      - file-upload
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "nginx", "-t"]
@@ -49,12 +50,13 @@ services:
       - "8646:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock  # 需要访问 Docker
+      - ./data:/app/data  # T02-13: 本地文件存储
     environment:
       - HERMES_CONTAINER_NAME=hermes-agent
       - HERMES_TIMEOUT=300
+      - SESSION_BASE_PATH=/app/data/sessions  # 会话目录
     depends_on:
       - hermes
-      - file-upload
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -70,8 +72,7 @@ services:
       - "8645:8645"
     volumes:
       - ./config:/root/.hermes  # 本地配置（技能等）
-      - ./data:/app/data
-      - ./data/uploads:/app/uploads
+      - ./data:/app/data  # T02-13: 本地文件存储
       # Docker Socket 已移除 - Agent 不需要 Docker 权限 (T02-01)
       - ./config/hermes-config.yaml:/opt/data/config.yaml:ro  # 覆盖 Hermes 内置配置
     env_file:
@@ -88,63 +89,10 @@ services:
       - TERMINAL_MAX_PROCESSES=${TERMINAL_MAX_PROCESSES:-100}
       - TERMINAL_CONTAINER_CPU=${TERMINAL_CONTAINER_CPU:-1}
       - TERMINAL_CONTAINER_MEMORY=${TERMINAL_CONTAINER_MEMORY:-2048}
-      # 文件处理配置
-      - FILE_UPLOAD_URL=http://file-upload:8000
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-your-password}
-      - MINIO_BUCKET=${MINIO_BUCKET:-excel-files}
-      - MINIO_SECURE=false
+      # 会话目录路径
+      - SESSION_BASE_PATH=/app/data/sessions
     command: ["tail", "-f", "/dev/null"]  # 保持容器运行，等待命令
     restart: unless-stopped
-
-  # File Upload Service - 文件上传服务
-  file-upload:
-    build:
-      context: ./services/file-upload
-      dockerfile: Dockerfile
-    container_name: hermes-file-upload
-    ports:
-      - "8080:8000"
-    volumes:
-      - ./data/uploads:/app/uploads
-    environment:
-      - MINIO_ENDPOINT=minio:9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-admin}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-your-password}
-      - MINIO_BUCKET=${MINIO_BUCKET:-excel-files}
-      - MINIO_SECURE=false
-    env_file:
-      - .env
-    depends_on:
-      minio:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # MinIO - 对象存储
-  minio:
-    image: minio/minio:latest
-    container_name: hermes-minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio-data:/data
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-admin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-your-password}
-    command: server /data --console-address ":9001"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
 
   # Prometheus - 监控告警
   prometheus:
@@ -166,6 +114,3 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-volumes:
-  minio-data:

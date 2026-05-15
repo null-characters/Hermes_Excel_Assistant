@@ -28,6 +28,11 @@ data/outputs/*
 !data/uploads/.gitkeep
 !data/outputs/.gitkeep
 
+# Phase 2: 会话数据目录（SQLite 隔离）
+data/sessions/*
+# 保留目录结构
+!data/sessions/.gitkeep
+
 # Hermes 内存/缓存数据
 data/memory/
 data/cache/
