@@ -239,6 +239,41 @@ web-ui:
 
 ---
 
+## 后续更新
+
+### 2026-05-15: 思考过程实时显示
+
+**新增功能**: Agent 思考过程实时显示
+
+- ✅ 增强 `hermes_client.py` 解析器，支持解析多种输出格式：
+  - `[thinking]` 思考过程
+  - `preparing` 工具准备
+  - `Tool completed` 工具完成
+  - `API call` API 调用
+  - `Enabled toolsets` 工具集加载
+  - `Conversation completed` 会话完成
+
+- ✅ 添加 ANSI 转义码去除逻辑
+- ✅ 添加 `_is_important_info()` 方法过滤噪音日志
+- ✅ 优化 stderr 处理，区分 INFO/DEBUG/ERROR
+
+- ✅ 更新 `web-ui/app.py` 样式：
+  - 思考过程（紫色斜体）
+  - 工具结果（青色）
+  - API 调用（浅蓝色）
+  - 初始化/响应样式
+
+**验证结果**:
+```
+[thinking    ] 💭 让我先检查一下这个Excel文件是否存在...
+[tool        ] 🔧 准备工具: terminal
+[api_call    ] 🌐 API 调用 #1: glm-5
+[tool_result ] ✅ 工具 1 完成 (0.46s)
+[progress    ] 🎉 会话完成 (共 3 次 API 调用)
+```
+
+---
+
 ## ⏱️ 检查点触发
 
 > **本任务线完成后触发 CP3 检查点 + Phase 2 结项**

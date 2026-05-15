@@ -12,17 +12,30 @@
 
 | 组件 | 端口 | 说明 |
 |------|------|------|
+| **Web UI** | **8501** | Streamlit 前端界面（推荐） |
 | Hermes Bridge | 8646 | 任务提交 API，与 Hermes Agent 通信 |
-| File Upload Service | 8080 | 文件上传/下载/管理 |
 | Hermes Agent | 8645 | LLM Agent 核心（内部调用） |
-| MinIO | 9000/9001 | 对象存储 + Web 管理界面 |
 | Prometheus | 9090 | 监控面板 |
 
 **数据流**：
 ```
-用户 → Hermes Bridge API → docker exec → Hermes Agent → LLM 推理
-                                                          ↓
-用户 ← 结果文件 ← File Upload Service ← MinIO ← 处理结果
+用户 → Web UI (8501) → Hermes Bridge (8646) → docker exec → Hermes Agent
+                                                          │
+                                                          ▼
+                                                   LLM 推理 + 工具调用
+                                                          │
+                                                          ▼
+用户 ← 结果文件 ← 本地文件系统 ← data/sessions/{session_id}/outputs/
+```
+
+**实时反馈流**：
+```
+Hermes Agent → stdout/stderr → Bridge 解析 → SSE 流式响应 → Web UI 显示
+                                    │
+                                    ├─ [thinking] 思考过程
+                                    ├─ [tool] 工具准备
+                                    ├─ [api_call] API 调用
+                                    └─ [response] 响应内容
 ```
 
 ---
@@ -88,11 +101,11 @@ docker compose logs -f hermes-agent
 ```bash
 # 健康检查
 curl http://localhost:8646/health   # Hermes Bridge
-curl http://localhost:8080/health   # File Upload Service
+curl http://localhost:8501/_stcore/health  # Web UI
 
 # 预期响应
 # {"status":"healthy","service":"hermes-bridge","hermes_available":true}
-# {"status":"healthy","service":"file-upload"}
+# ok
 ```
 
 ---
@@ -104,33 +117,45 @@ curl http://localhost:8080/health   # File Upload Service
 #### 提交文本任务
 
 ```bash
-curl -X POST http://localhost:8646/api/submit \
+curl -X POST http://localhost:8646/api/task/submit \
   -H "Content-Type: application/json" \
   -d '{"message": "你好，请介绍一下你自己"}'
 ```
 
-#### 处理 Excel 文件
+#### 处理 Excel 文件（流式响应，推荐）
 
 ```bash
-# Step 1: 上传文件
-curl -X POST "http://localhost:8080/api/upload?user_id=local_user" \
-  -F "file=@test.xlsx"
-
-# 响应示例：
-# {"success":true,"file_id":"file_20260515_xxx","filename":"file_20260515_xxx.xlsx",...}
-
-# Step 2: 提交处理任务
-curl -X POST http://localhost:8646/api/excel \
+# 流式 API，实时显示 Agent 思考过程
+curl -N -X POST http://localhost:8646/api/excel/stream \
   -H "Content-Type: application/json" \
   -d '{
-    "file_id": "file_20260515_xxx",
-    "task": "替换第一行数据为：员工姓名,所属部门,年龄,入职时间,月薪",
-    "user_id": "local_user"
+    "file_path": "/app/data/sessions/test/uploads/input.xlsx",
+    "task": "将第一列数据按升序排序",
+    "session_id": "test"
   }'
+```
 
-# Step 3: 下载结果
-curl "http://localhost:8080/api/download/file_20260515_xxx.xlsx?user_id=local_user" \
-  -o result.xlsx
+**响应格式**（Server-Sent Events）：
+```
+data: {"type":"thinking","content":"💭 让我先检查一下这个Excel文件..."}
+data: {"type":"tool","content":"🔧 准备工具: terminal"}
+data: {"type":"api_call","content":"🌐 API 调用 #1: glm-5"}
+data: {"type":"tool_result","content":"✅ 工具 1 完成 (0.46s)"}
+data: {"type":"response","content":"🤖 已完成排序..."}
+data: {"type":"done","content":"🎉 任务完成","output_file":"result.xlsx"}
+```
+
+#### 处理 Excel 文件（非流式）
+
+```bash
+# 非流式 API，等待完成后返回结果
+curl -X POST http://localhost:8646/api/task/excel \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_path": "/app/data/sessions/test/uploads/input.xlsx",
+    "task": "将第一列数据按升序排序",
+    "session_id": "test"
+  }'
 ```
 
 #### 检查 Agent 状态
@@ -142,34 +167,6 @@ curl http://localhost:8646/api/status
 # {"available":true,"container":"hermes-agent"}
 ```
 
-### File Upload API
-
-#### 文件上传
-
-```bash
-curl -X POST "http://localhost:8080/api/upload?user_id=test_user" \
-  -F "file=@test.xlsx"
-```
-
-#### 文件下载
-
-```bash
-curl "http://localhost:8080/api/download/file_20260515_xxx.xlsx?user_id=test_user" \
-  -o downloaded.xlsx
-```
-
-#### 文件信息
-
-```bash
-curl "http://localhost:8080/api/info/file_20260515_xxx.xlsx?user_id=test_user"
-```
-
-#### 文件删除
-
-```bash
-curl -X DELETE "http://localhost:8080/api/delete/file_20260515_xxx.xlsx?user_id=test_user"
-```
-
 ---
 
 ## Swagger UI
@@ -177,23 +174,20 @@ curl -X DELETE "http://localhost:8080/api/delete/file_20260515_xxx.xlsx?user_id=
 访问 API 文档：
 
 - Hermes Bridge: http://localhost:8646/docs
-- File Upload: http://localhost:8080/docs
 
 ---
 
-## MinIO 管理界面
+## 会话数据目录
 
-访问 http://localhost:9001
-
-| 字段 | 值 |
-|------|------|
-| Username | `admin` |
-| Password | `.env` 中的 `MINIO_ROOT_PASSWORD` |
-
-功能：
-- 查看上传的文件
-- 手动上传/下载文件
-- 管理存储桶
+```
+data/sessions/
+├── {session_id}/              # 会话目录
+│   ├── workspace.db           # SQLite 数据库
+│   ├── uploads/               # 上传文件
+│   │   └── input.xlsx
+│   └── outputs/               # 输出文件
+│       └── result.xlsx
+```
 
 ---
 
@@ -262,22 +256,22 @@ docker exec hermes-agent tail -50 /opt/data/logs/errors.log
 ```bash
 # 查看端口占用
 lsof -i :8646
-lsof -i :8080
-lsof -i :9000
+lsof -i :8501
 
 # 修改 docker-compose.yml 中的端口映射
 ```
 
-### Q: MinIO 启动失败？
+### Q: Web UI 无法访问？
 
 ```bash
-# 检查数据目录权限
-ls -la data/
+# 检查容器状态
+docker compose ps web-ui
 
-# 清理重建
-docker compose down -v
-rm -rf data/minio
-docker compose up minio -d
+# 查看日志
+docker compose logs web-ui --tail 50
+
+# 重启服务
+docker compose restart web-ui
 ```
 
 ---

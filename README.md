@@ -27,6 +27,7 @@
 |------|------|------|
 | **Phase 1: PoC 验证** | ✅ 完成 | 技术可行性验证 |
 | **Phase 2: 产品化 MVP** | ✅ 完成 | Web UI + 安全加固 + 本地存储 |
+| **Phase 3: 功能增强** | 🔄 进行中 | 批量处理 + 模板系统 |
 
 ### Phase 2 完成内容
 
@@ -36,6 +37,7 @@
 - ✅ **命令黑名单**: `validate_prompt()` 拦截危险命令
 - ✅ **本地文件存储**: 移除 MinIO，改用本地文件系统
 - ✅ **Web UI**: Streamlit 前端，非技术用户可用
+- ✅ **思考过程实时显示**: Agent 推理过程可视化
 - ✅ **E2E 测试**: Playwright 自动化流程测试
 
 ### 路线选择
@@ -211,7 +213,16 @@ curl -X POST http://localhost:8646/api/task/submit \
   -H "Content-Type: application/json" \
   -d '{"message": "你好，请介绍一下你自己"}'
 
-# 处理 Excel 文件
+# 处理 Excel 文件（流式响应，实时显示思考过程）
+curl -N -X POST http://localhost:8646/api/excel/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_path": "/app/data/sessions/sess_xxx/uploads/input.xlsx",
+    "task": "将第一列数据按升序排序",
+    "session_id": "sess_xxx"
+  }'
+
+# 非流式 API（等待完成后返回结果）
 curl -X POST http://localhost:8646/api/task/excel \
   -H "Content-Type: application/json" \
   -d '{
@@ -221,13 +232,24 @@ curl -X POST http://localhost:8646/api/task/excel \
   }'
 ```
 
+### 流式 API 事件类型
+
+| 事件类型 | 说明 | 示例 |
+|----------|------|------|
+| `thinking` | Agent 思考过程 | `💭 让我先检查一下这个Excel文件...` |
+| `tool` | 工具准备/执行 | `🔧 准备工具: terminal` |
+| `tool_result` | 工具执行结果 | `✅ 工具 1 完成 (0.46s)` |
+| `api_call` | API 调用信息 | `🌐 API 调用 #1: glm-5` |
+| `response` | Agent 响应内容 | `🤖 已完成排序...` |
+| `done` | 任务完成 | `🎉 任务完成` |
+
 ---
 
 ## 服务端口
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| **Web UI** | **8501** | Streamlit 前端界面 |
+| **Web UI** | **8501** | Streamlit 前端界面（推荐） |
 | Hermes Bridge | 8646 | 任务提交 API |
 | Hermes Agent | 8645 | Agent 服务（内部） |
 | Prometheus | 9090 | 监控面板 |
@@ -311,6 +333,17 @@ Hermes-Excel-Assistant/
   "session_id": "sess_xxx",
   "output_dir": "/app/data/sessions/{session_id}/outputs"
 }
+```
+
+### 流式响应格式
+
+```json
+{"type": "thinking", "content": "💭 让我分析一下这个文件..."}
+{"type": "tool", "content": "🔧 准备工具: terminal"}
+{"type": "api_call", "content": "🌐 API 调用 #1: glm-5"}
+{"type": "tool_result", "content": "✅ 工具 1 完成 (0.46s)"}
+{"type": "response", "content": "🤖 已完成处理..."}
+{"type": "done", "content": "🎉 任务完成", "output_file": "result.xlsx"}
 ```
 
 ---
