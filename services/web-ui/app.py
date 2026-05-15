@@ -196,7 +196,7 @@ def show_main_content():
         clear_button = st.button("🗑️ 清空", use_container_width=True)
     
     # 执行任务（流式模式）
-    if execute_button and uploaded_file and instruction:
+    if execute_button and instruction:
         task_runner = get_task_runner()
         
         # 进度步骤指示器
@@ -358,7 +358,7 @@ def show_main_content():
         st.session_state.task_history.append({
             "instruction": instruction,
             "result": result,
-            "file_name": uploaded_file.name
+            "file_name": uploaded_file.name if uploaded_file else None
         })
         
         # 显示最终结果
