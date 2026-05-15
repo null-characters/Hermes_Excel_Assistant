@@ -161,7 +161,7 @@ def show_sidebar():
         with st.expander("查看帮助"):
             st.markdown("""
             **使用步骤：**
-            1. 上传 Excel 文件 (.xlsx/.xls)
+            1. 上传文件（支持 Excel/Word/PPT/PDF/CSV/JSON/TXT/图片等）
             2. 输入处理指令
             3. 点击"执行"按钮
             4. 实时查看处理进度
@@ -171,8 +171,8 @@ def show_sidebar():
 
 def show_main_content():
     """显示主内容区"""
-    st.title("📊 Excel 智能助手")
-    st.markdown("使用自然语言处理 Excel 文件，无需编程知识")
+    st.title("📊 智能文件助手")
+    st.markdown("使用自然语言处理各种文件，无需编程知识")
     
     st.caption(f"当前会话: `{st.session_state.session_id}`")
     
@@ -181,9 +181,9 @@ def show_main_content():
     # 文件上传区
     st.header("📁 文件上传")
     uploaded_file = st.file_uploader(
-        "上传 Excel 文件",
-        type=["xlsx", "xls"],
-        help="支持 .xlsx 和 .xls 格式"
+        "上传文件",
+        type=["xlsx", "xls", "docx", "doc", "pptx", "ppt", "pdf", "csv", "json", "xml", "txt", "png", "jpg", "jpeg", "gif", "webp"],
+        help="支持 Excel/Word/PPT/PDF/CSV/JSON/TXT/图片等格式"
     )
     
     if uploaded_file:

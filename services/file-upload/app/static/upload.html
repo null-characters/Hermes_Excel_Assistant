@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Excel 文件上传 - Hermes WeCom Assistant</title>
+    <title>文件上传 - Hermes WeCom Assistant</title>
     <style>
         * {
             margin: 0;
@@ -244,15 +244,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Excel 文件上传</h1>
-            <p>上传 Excel 文件，在企微聊天中发送处理指令</p>
+            <h1>文件上传</h1>
+            <p>上传文件，在企微聊天中发送处理指令</p>
         </div>
         
         <div class="upload-area" id="upload-area">
             <div class="upload-icon">📁</div>
             <div class="upload-text">点击或拖拽上传</div>
-            <div class="upload-hint">支持 .xlsx, .xls 格式，最大 50MB</div>
-            <input type="file" id="file-input" accept=".xlsx,.xls">
+            <div class="upload-hint">支持 Excel/Word/PPT/PDF/CSV/JSON/TXT/图片等格式，最大 50MB</div>
+            <input type="file" id="file-input" accept=".xlsx,.xls,.docx,.doc,.pptx,.ppt,.pdf,.csv,.json,.xml,.txt,.png,.jpg,.jpeg,.gif,.webp,.zip,.tar,.gz">
         </div>
         
         <div class="file-info" id="file-info">
@@ -340,15 +340,17 @@
         userIdInput.addEventListener('input', updateUploadButton);
         
         function handleFile(file) {
-            // 验证文件类型
-            const validTypes = [
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/vnd.ms-excel'
-            ];
+            // 验证文件类型（通过扩展名）
             const ext = file.name.split('.').pop().toLowerCase();
+            const allowedExtensions = [
+                'xlsx', 'xls', 'docx', 'doc', 'pptx', 'ppt',
+                'pdf', 'csv', 'json', 'xml', 'txt',
+                'png', 'jpg', 'jpeg', 'gif', 'webp',
+                'zip', 'tar', 'gz'
+            ];
             
-            if (!validTypes.includes(file.type) && !['xlsx', 'xls'].includes(ext)) {
-                alert('请选择 Excel 文件 (.xlsx 或 .xls)');
+            if (!allowedExtensions.includes(ext)) {
+                alert('不支持的文件类型: ' + ext + '\n支持的格式: ' + allowedExtensions.join(', '));
                 return;
             }
             

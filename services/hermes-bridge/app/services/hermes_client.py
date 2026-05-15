@@ -493,14 +493,14 @@ class HermesClient:
         
         return await self.execute_task(prompt)
     
-    async def process_excel(
+    async def process_file(
         self,
         file_path: str,
         task: str,
         session_id: str,
         output_dir: Optional[str] = None
     ) -> HermesResponse:
-        """处理 Excel 文件（同步模式）"""
+        """处理文件（同步模式）"""
         if output_dir is None:
             output_dir = f"/app/data/sessions/{session_id}/outputs"
 
@@ -519,14 +519,19 @@ class HermesClient:
 
         return await self.execute_task(prompt)
     
-    async def process_excel_stream(
+    # 别名，保持向后兼容
+    async def process_excel(self, file_path: str, task: str, session_id: str, output_dir: Optional[str] = None) -> HermesResponse:
+        """处理 Excel 文件（同步模式）- 别名，推荐使用 process_file"""
+        return await self.process_file(file_path, task, session_id, output_dir)
+    
+    async def process_file_stream(
         self,
         file_path: str,
         task: str,
         session_id: str,
         output_dir: Optional[str] = None
     ) -> AsyncGenerator[dict[str, Any], None]:
-        """处理 Excel 文件（流式模式）"""
+        """处理文件（流式模式）"""
         if output_dir is None:
             output_dir = f"/app/data/sessions/{session_id}/outputs"
 
@@ -544,4 +549,10 @@ class HermesClient:
         )
 
         async for event in self.execute_task_stream(prompt):
+            yield event
+    
+    # 别名，保持向后兼容
+    async def process_excel_stream(self, file_path: str, task: str, session_id: str, output_dir: Optional[str] = None) -> AsyncGenerator[dict[str, Any], None]:
+        """处理 Excel 文件（流式模式）- 别名，推荐使用 process_file_stream"""
+        async for event in self.process_file_stream(file_path, task, session_id, output_dir):
             yield event

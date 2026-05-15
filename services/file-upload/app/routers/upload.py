@@ -18,9 +18,35 @@ router = APIRouter(prefix="/api", tags=["文件操作"])
 
 # 常量定义
 FILE_ID_HEX_LENGTH = 8  # 文件ID中UUID十六进制长度
-DEFAULT_CONTENT_TYPE = (
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+DEFAULT_CONTENT_TYPE = "application/octet-stream"
+
+# 支持的文件类型扩展名映射
+ALLOWED_EXTENSIONS = {
+    # Office 文档
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".xls": "application/vnd.ms-excel",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".doc": "application/msword",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".ppt": "application/vnd.ms-powerpoint",
+    # 数据文件
+    ".csv": "text/csv",
+    ".json": "application/json",
+    ".xml": "application/xml",
+    ".txt": "text/plain",
+    # 图片文件
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    # PDF
+    ".pdf": "application/pdf",
+    # 压缩文件
+    ".zip": "application/zip",
+    ".tar": "application/x-tar",
+    ".gz": "application/gzip",
+}
 
 
 def get_user_id(user_id: str = Query(..., description="WeCom 用户ID")) -> str:
@@ -30,29 +56,25 @@ def get_user_id(user_id: str = Query(..., description="WeCom 用户ID")) -> str:
 
 @router.post("/upload", response_model=UploadResponse, responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}})
 async def upload_file(
-    file: UploadFile = File(..., description="Excel 文件"),
+    file: UploadFile = File(..., description="文件"),
     user_id: str = Depends(get_user_id)
 ):
     """
-    上传 Excel 文件
+    上传文件（支持多种格式）
     
-    - **file**: Excel 文件（支持 .xlsx, .xls）
+    - **file**: 文件（支持 Excel/Word/PPT/PDF/CSV/JSON/TXT/图片等格式）
     - **user_id**: WeCom 用户ID，用于文件归属验证
     """
-    # 验证文件类型
-    allowed_types = [
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
-        "application/vnd.ms-excel",  # .xls
-    ]
+    # 验证文件类型（通过扩展名）
+    filename = file.filename or ""
+    file_ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     
-    if file.content_type not in allowed_types:
-        # 也检查文件扩展名
-        filename = file.filename or ""
-        if not (filename.endswith(".xlsx") or filename.endswith(".xls")):
-            raise HTTPException(
-                status_code=400,
-                detail="仅支持 Excel 文件 (.xlsx, .xls)"
-            )
+    if file_ext not in ALLOWED_EXTENSIONS:
+        allowed_list = ", ".join(ALLOWED_EXTENSIONS.keys())
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支持的文件类型: {file_ext}。支持的格式: {allowed_list}"
+        )
     
     # 读取文件内容
     content = await file.read()
@@ -64,14 +86,14 @@ async def upload_file(
         f"file_{datetime.now().strftime('%Y%m%d')}_"
         f"{uuid.uuid4().hex[:FILE_ID_HEX_LENGTH]}"
     )
-    stored_filename = f"{file_id}.xlsx"
+    stored_filename = f"{file_id}{file_ext}"
     
     metadata = FileMetadata(
         file_id=file_id,
         user_id=user_id,
         filename=stored_filename,
-        original_filename=file.filename or "unknown.xlsx",
-        content_type=file.content_type or DEFAULT_CONTENT_TYPE,
+        original_filename=file.filename or f"unknown{file_ext}",
+        content_type=file.content_type or ALLOWED_EXTENSIONS.get(file_ext, DEFAULT_CONTENT_TYPE),
         file_size=len(content)
     )
     
@@ -106,19 +128,26 @@ async def download_file(
     """
     下载文件（需验证用户归属）
     
-    - **file_id**: 文件ID（可带或不带 .xlsx 扩展名）
+    - **file_id**: 文件ID（可带或不带扩展名）
     - **user_id**: WeCom 用户ID，必须与上传时的用户ID一致
     """
     # 处理文件名（兼容带扩展名和不带扩展名的情况）
-    if file_id.endswith(".xlsx"):
+    # 如果 file_id 不包含扩展名，尝试常见扩展名
+    if "." in file_id and file_id.rsplit(".", 1)[-1].lower() in [ext.lstrip(".") for ext in ALLOWED_EXTENSIONS]:
         filename = file_id
     else:
-        filename = f"{file_id}.xlsx"
-    
-    # 获取 MinIO 客户端
-    minio_client = get_minio_client()
+        # 尝试查找文件（兼容旧格式）
+        filename = None
+        for ext in ALLOWED_EXTENSIONS:
+            candidate = f"{file_id}{ext}"
+            if get_minio_client().file_exists(candidate):
+                filename = candidate
+                break
+        if not filename:
+            raise HTTPException(status_code=404, detail="文件不存在或已过期")
     
     # 获取元数据
+    minio_client = get_minio_client()
     metadata = minio_client.get_metadata(filename)
     if metadata is None:
         raise HTTPException(status_code=404, detail="文件不存在或已过期")
@@ -147,7 +176,7 @@ async def download_file(
         raise HTTPException(status_code=500, detail="文件下载失败")
     
     # 返回文件流（安全编码文件名）
-    original_filename = metadata.get("original_filename", "download.xlsx")
+    original_filename = metadata.get("original_filename", "download")
     
     return StreamingResponse(
         io.BytesIO(content),
@@ -168,11 +197,23 @@ async def get_file_info(
     """
     获取文件信息（需验证用户归属）
     
-    - **file_id**: 文件ID（可带或不带 .xlsx 扩展名）
+    - **file_id**: 文件ID（可带或不带扩展名）
     - **user_id**: WeCom 用户ID
     """
-    filename = file_id if file_id.endswith(".xlsx") else f"{file_id}.xlsx"
     minio_client = get_minio_client()
+    
+    # 处理文件名（兼容带扩展名和不带扩展名的情况）
+    if "." in file_id and file_id.rsplit(".", 1)[-1].lower() in [ext.lstrip(".") for ext in ALLOWED_EXTENSIONS]:
+        filename = file_id
+    else:
+        filename = None
+        for ext in ALLOWED_EXTENSIONS:
+            candidate = f"{file_id}{ext}"
+            if minio_client.file_exists(candidate):
+                filename = candidate
+                break
+        if not filename:
+            raise HTTPException(status_code=404, detail="文件不存在")
     
     metadata = minio_client.get_metadata(filename)
     if metadata is None:
@@ -213,11 +254,23 @@ async def delete_file(
     """
     删除文件（需验证用户归属）
     
-    - **file_id**: 文件ID（可带或不带 .xlsx 扩展名）
+    - **file_id**: 文件ID（可带或不带扩展名）
     - **user_id**: WeCom 用户ID
     """
-    filename = file_id if file_id.endswith(".xlsx") else f"{file_id}.xlsx"
     minio_client = get_minio_client()
+    
+    # 处理文件名（兼容带扩展名和不带扩展名的情况）
+    if "." in file_id and file_id.rsplit(".", 1)[-1].lower() in [ext.lstrip(".") for ext in ALLOWED_EXTENSIONS]:
+        filename = file_id
+    else:
+        filename = None
+        for ext in ALLOWED_EXTENSIONS:
+            candidate = f"{file_id}{ext}"
+            if minio_client.file_exists(candidate):
+                filename = candidate
+                break
+        if not filename:
+            raise HTTPException(status_code=404, detail="文件不存在")
     
     metadata = minio_client.get_metadata(filename)
     if metadata is None:

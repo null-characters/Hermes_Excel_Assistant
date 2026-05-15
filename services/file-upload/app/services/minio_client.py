@@ -28,7 +28,7 @@ class MinIOClient:
         self.endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
         self.access_key = os.getenv("MINIO_ACCESS_KEY", "admin")
         self.secret_key = os.getenv("MINIO_SECRET_KEY", "your-password")
-        self.bucket_name = os.getenv("MINIO_BUCKET", "excel-files")
+        self.bucket_name = os.getenv("MINIO_BUCKET", "user-files")
         self.secure = os.getenv("MINIO_SECURE", "false").lower() == "true"
         
         self.client = Minio(

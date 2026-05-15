@@ -1,6 +1,6 @@
 """
 File Upload Service - 主应用
-Hermes WeCom Excel Assistant
+Hermes WeCom Assistant
 """
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # 创建应用
 app = FastAPI(
     title="File Upload Service",
-    description="Hermes WeCom Excel Assistant - 文件上传服务",
+    description="Hermes WeCom Assistant - 文件上传服务",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -63,7 +63,7 @@ async def startup_event():
     """启动事件"""
     logger.info("File Upload Service starting...")
     logger.info(f"MINIO_ENDPOINT: {os.getenv('MINIO_ENDPOINT', 'minio:9000')}")
-    logger.info(f"MINIO_BUCKET: {os.getenv('MINIO_BUCKET', 'excel-files')}")
+    logger.info(f"MINIO_BUCKET: {os.getenv('MINIO_BUCKET', 'user-files')}")
 
 
 @app.on_event("shutdown")

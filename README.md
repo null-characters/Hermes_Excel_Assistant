@@ -1,10 +1,12 @@
-# Hermes Excel Assistant
+# Hermes Assistant
 
-> 基于 Hermes Agent 的本地化 Excel 自动化助手
+> 基于 Hermes Agent 的本地化文件自动化助手
 
 ## 项目简介
 
-利用 Hermes Agent 的自主代理能力，为文职人员提供 Excel 处理助手。用户通过 **Web UI** 或 API 上传文件，发送自然语言指令，系统自动完成数据清洗、汇总或分析，并返回处理后的结果文件。
+利用 Hermes Agent 的自主代理能力，为文职人员提供智能文件处理助手。用户通过 **Web UI** 或 API 上传文件，发送自然语言指令，系统自动完成数据清洗、汇总、分析或内容提取，并返回处理后的结果文件。
+
+**支持文件格式**: Excel (.xlsx/.xls)、Word (.docx/.doc)、PPT (.pptx/.ppt)、PDF、CSV、JSON、TXT、图片等
 
 **当前方案：本地化部署** — 无需企业微信、无需管理员权限，所有操作在本地完成。
 
@@ -47,7 +49,7 @@
 | 决策项 | 选择 | 说明 |
 |--------|------|------|
 | 技术路线 | ✅ 本地化部署 | 无需企微权限，降低验证门槛 |
-| Excel 存储 | ✅ 本地文件系统 | 简化架构，放弃 MinIO |
+| 文件存储 | ✅ 本地文件系统 | 简化架构，放弃 MinIO |
 | 沙箱方案 | ✅ local + SQLite 隔离 | 会话级数据隔离，路径白名单 |
 | LLM 配置 | ✅ 用户自定义 | 用户自行配置 API Key 和 Provider |
 | 用户界面 | ✅ Streamlit Web UI | 非技术用户友好 |
@@ -194,9 +196,9 @@ docker compose ps
 
 打开浏览器访问: **http://localhost:8501**
 
-### 5. 使用 Web UI 处理 Excel
+### 5. 使用 Web UI 处理文件
 
-1. 上传 Excel 文件 (.xlsx/.xls)
+1. 上传文件（支持 Excel/Word/PPT/PDF/CSV/JSON/TXT/图片等）
 2. 输入自然语言指令（如：将第一列数据按升序排序）
 3. 点击"执行"按钮
 4. 等待处理完成
@@ -213,8 +215,8 @@ curl -X POST http://localhost:8646/api/task/submit \
   -H "Content-Type: application/json" \
   -d '{"message": "你好，请介绍一下你自己"}'
 
-# 处理 Excel 文件（流式响应，实时显示思考过程）
-curl -N -X POST http://localhost:8646/api/excel/stream \
+# 处理文件（流式响应，实时显示思考过程）
+curl -N -X POST http://localhost:8646/api/task/stream \
   -H "Content-Type: application/json" \
   -d '{
     "file_path": "/app/data/sessions/sess_xxx/uploads/input.xlsx",
@@ -321,10 +323,10 @@ Hermes-Excel-Assistant/
 |------|------|------|
 | `/health` | GET | 健康检查 |
 | `/api/task/submit` | POST | 提交文本任务 |
-| `/api/task/excel` | POST | 处理 Excel 文件 |
+| `/api/task/excel` | POST | 处理文件（向后兼容） |
 | `/api/task/status` | GET | Agent 状态 |
 
-### Excel 处理 API 请求格式
+### 文件处理 API 请求格式
 
 ```json
 {
