@@ -17,6 +17,19 @@ EXCEL_MIME_TYPE = (
 )
 XLS_MIME_TYPE = "application/vnd.ms-excel"
 
+# 测试用的文件类型映射（与 upload.py 中 ALLOWED_EXTENSIONS 对应）
+TEST_FILE_TYPES = {
+    ".xlsx": EXCEL_MIME_TYPE,
+    ".xls": XLS_MIME_TYPE,
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".pdf": "application/pdf",
+    ".csv": "text/csv",
+    ".json": "application/json",
+    ".txt": "text/plain",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+}
+
 
 @pytest.fixture
 def mock_minio_client():
@@ -140,14 +153,44 @@ class TestUploadFile:
                 assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_upload_invalid_type(self):
-        """测试上传非 Excel 文件返回 400"""
+    @pytest.mark.parametrize("ext,mime_type", list(TEST_FILE_TYPES.items()))
+    async def test_upload_various_file_types(
+        self, mock_minio_client, ext, mime_type
+    ):
+        """测试上传各种文件类型成功"""
+        sample_content = b"test content for " + ext.encode()
+        with patch(
+            "app.routers.upload.get_minio_client",
+            return_value=mock_minio_client
+        ):
+            async with get_client() as client:
+                files = {
+                    "file": (
+                        f"test{ext}",
+                        io.BytesIO(sample_content),
+                        mime_type
+                    )
+                }
+                response = await client.post(
+                    "/api/upload?user_id=test_user",
+                    files=files
+                )
+
+                assert response.status_code == 200, f"Failed for {ext}: {response.json()}"
+                data = response.json()
+                assert data["file_id"].startswith("file_")
+                assert data["user_id"] == "test_user"
+                assert data["message"] == "文件上传成功"
+
+    @pytest.mark.asyncio
+    async def test_upload_unsupported_type(self):
+        """测试上传不支持的文件类型返回 400"""
         async with get_client() as client:
             files = {
                 "file": (
-                    "test.txt",
-                    io.BytesIO(b"text content"),
-                    "text/plain"
+                    "test.exe",
+                    io.BytesIO(b"binary content"),
+                    "application/octet-stream"
                 )
             }
             response = await client.post(
@@ -156,7 +199,7 @@ class TestUploadFile:
             )
 
             assert response.status_code == 400
-            assert "仅支持 Excel 文件" in response.json()["detail"]
+            assert "不支持的文件类型" in response.json()["detail"]
 
     @pytest.mark.asyncio
     async def test_upload_missing_user_id(self, sample_excel_content):
