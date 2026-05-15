@@ -125,6 +125,8 @@ services:
       - "8501:8501"
     volumes:
       - ./data:/app/data
+    env_file:
+      - .env
     environment:
       - BRIDGE_API_URL=http://hermes-bridge:8000
       - SESSION_BASE_PATH=/app/data/sessions

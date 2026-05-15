@@ -44,9 +44,6 @@ with col1:
 with col2:
     if st.button("🔍 冒烟测试", type="primary", disabled=not is_configured, use_container_width=True):
         bridge_url = os.getenv("BRIDGE_API_URL", "http://localhost:8646")
-        # 容器内走内部端口
-        if bridge_url.endswith("8000"):
-            bridge_url = bridge_url.replace(":8000", ":8646")
 
         with st.spinner("正在测试 LLM 连接..."):
             try:
