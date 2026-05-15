@@ -149,11 +149,11 @@ def show_main_content():
     st.divider()
     
     # 文件上传区
-    st.header("📁 文件上传")
+    st.header("📁 文件上传（可选）")
     uploaded_file = st.file_uploader(
-        "上传文件",
+        "上传文件（可选，不传则直接对话）",
         type=["xlsx", "xls", "docx", "doc", "pptx", "ppt", "pdf", "csv", "json", "xml", "txt", "png", "jpg", "jpeg", "gif", "webp"],
-        help="支持 Excel/Word/PPT/PDF/CSV/JSON/TXT/图片等格式"
+        help="支持 Excel/Word/PPT/PDF/CSV/JSON/TXT/图片等格式，不上传文件也可以直接提问"
     )
     
     if uploaded_file:
@@ -189,7 +189,7 @@ def show_main_content():
             "🚀 执行",
             type="primary",
             use_container_width=True,
-            disabled=not (uploaded_file and instruction)
+            disabled=not instruction
         )
     
     with col2:

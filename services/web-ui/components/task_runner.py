@@ -110,11 +110,13 @@ class TaskRunner:
                 - content: 具体内容
         """
         try:
-            file_path = self.save_upload_file(session_id, uploaded_file, data_path)
-            
-            container_file_path = file_path.replace(
-                str(data_path), "/app/data/sessions"
-            )
+            # 处理文件（如果有）
+            container_file_path = None
+            if uploaded_file:
+                file_path = self.save_upload_file(session_id, uploaded_file, data_path)
+                container_file_path = file_path.replace(
+                    str(data_path), "/app/data/sessions"
+                )
             
             payload = {
                 "file_path": container_file_path,

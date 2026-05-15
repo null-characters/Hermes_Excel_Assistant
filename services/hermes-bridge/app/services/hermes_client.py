@@ -508,64 +508,72 @@ class HermesClient:
     
     async def process_file(
         self,
-        file_path: str,
+        file_path: Optional[str],
         task: str,
         session_id: str,
         output_dir: Optional[str] = None
     ) -> HermesResponse:
-        """处理文件（同步模式）"""
+        """处理文件或纯文本任务（同步模式）"""
         if output_dir is None:
             output_dir = f"/app/data/sessions/{session_id}/outputs"
 
-        prompt = (
-            f"请处理以下任务：\n"
-            f"- 输入文件: {file_path}\n"
-            f"- 任务要求: {task}\n"
-            f"- 输出目录: {output_dir}/\n"
-            f"\n"
-            f"说明：\n"
-            f"1. 根据任务要求选择合适的输出格式（xlsx/txt/csv/json等）\n"
-            f"2. 输出文件保存在 {output_dir}/ 目录下\n"
-            f"3. 文件名根据任务内容命名，如：result.xlsx、分析报告.txt、汇总表.csv 等\n"
-            f"4. 如果任务不需要生成文件（如查询、分析），直接回答即可"
-        )
+        # 根据是否有文件生成不同的 prompt
+        if file_path:
+            prompt = (
+                f"请处理以下任务：\n"
+                f"- 输入文件: {file_path}\n"
+                f"- 任务要求: {task}\n"
+                f"- 输出目录: {output_dir}/\n"
+                f"\n"
+                f"说明：\n"
+                f"1. 根据任务要求选择合适的输出格式（xlsx/txt/csv/json等）\n"
+                f"2. 输出文件保存在 {output_dir}/ 目录下\n"
+                f"3. 文件名根据任务内容命名，如：result.xlsx、分析报告.txt、汇总表.csv 等\n"
+                f"4. 如果任务不需要生成文件（如查询、分析），直接回答即可"
+            )
+        else:
+            prompt = task
 
         return await self.execute_task(prompt)
     
     # 别名，保持向后兼容
-    async def process_excel(self, file_path: str, task: str, session_id: str, output_dir: Optional[str] = None) -> HermesResponse:
+    async def process_excel(self, file_path: Optional[str], task: str, session_id: str, output_dir: Optional[str] = None) -> HermesResponse:
         """处理 Excel 文件（同步模式）- 别名，推荐使用 process_file"""
         return await self.process_file(file_path, task, session_id, output_dir)
     
     async def process_file_stream(
         self,
-        file_path: str,
+        file_path: Optional[str],
         task: str,
         session_id: str,
         output_dir: Optional[str] = None
     ) -> AsyncGenerator[dict[str, Any], None]:
-        """处理文件（流式模式）"""
+        """处理文件或纯文本任务（流式模式）"""
         if output_dir is None:
             output_dir = f"/app/data/sessions/{session_id}/outputs"
 
-        prompt = (
-            f"请处理以下任务：\n"
-            f"- 输入文件: {file_path}\n"
-            f"- 任务要求: {task}\n"
-            f"- 输出目录: {output_dir}/\n"
-            f"\n"
-            f"说明：\n"
-            f"1. 根据任务要求选择合适的输出格式（xlsx/txt/csv/json等）\n"
-            f"2. 输出文件保存在 {output_dir}/ 目录下\n"
-            f"3. 文件名根据任务内容命名，如：result.xlsx、分析报告.txt、汇总表.csv 等\n"
-            f"4. 如果任务不需要生成文件（如查询、分析），直接回答即可"
-        )
+        # 根据是否有文件生成不同的 prompt
+        if file_path:
+            prompt = (
+                f"请处理以下任务：\n"
+                f"- 输入文件: {file_path}\n"
+                f"- 任务要求: {task}\n"
+                f"- 输出目录: {output_dir}/\n"
+                f"\n"
+                f"说明：\n"
+                f"1. 根据任务要求选择合适的输出格式（xlsx/txt/csv/json等）\n"
+                f"2. 输出文件保存在 {output_dir}/ 目录下\n"
+                f"3. 文件名根据任务内容命名，如：result.xlsx、分析报告.txt、汇总表.csv 等\n"
+                f"4. 如果任务不需要生成文件（如查询、分析），直接回答即可"
+            )
+        else:
+            prompt = task
 
         async for event in self.execute_task_stream(prompt):
             yield event
     
     # 别名，保持向后兼容
-    async def process_excel_stream(self, file_path: str, task: str, session_id: str, output_dir: Optional[str] = None) -> AsyncGenerator[dict[str, Any], None]:
+    async def process_excel_stream(self, file_path: Optional[str], task: str, session_id: str, output_dir: Optional[str] = None) -> AsyncGenerator[dict[str, Any], None]:
         """处理 Excel 文件（流式模式）- 别名，推荐使用 process_file_stream"""
         async for event in self.process_file_stream(file_path, task, session_id, output_dir):
             yield event
