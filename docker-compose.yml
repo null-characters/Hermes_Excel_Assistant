@@ -69,13 +69,18 @@ services:
     ports:
       - "8645:8645"
     volumes:
-      - ./config:/root/.hermes
+      - ./config:/root/.hermes  # 本地配置（技能等）
       - ./data:/app/data
       - ./data/uploads:/app/uploads
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/hermes-config.yaml:/opt/data/config.yaml:ro  # 覆盖 Hermes 内置配置
     env_file:
       - .env
     environment:
+      # LLM 配置（覆盖内置配置）
+      - HERMES_INFERENCE_PROVIDER=${HERMES_PROVIDER:-custom}
+      - HERMES_MODEL=${HERMES_MODEL:-glm-5}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       # 安全配置 (P0)
       - TERMINAL_NETWORK_DISABLED=${TERMINAL_NETWORK_DISABLED:-true}
       - TERMINAL_TIMEOUT=${TERMINAL_TIMEOUT:-300}

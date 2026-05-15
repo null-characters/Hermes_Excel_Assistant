@@ -1,0 +1,45 @@
+# Hermes Agent 配置文件
+# 此文件挂载到容器 /opt/data/config.yaml，覆盖 Hermes 默认配置
+
+# =============================================================================
+# Model Configuration
+# =============================================================================
+model:
+  # 默认模型（可通过 --model 覆盖）
+  default: "glm-5"
+
+  # 推理提供商
+  # custom = OpenAI 兼容端点，使用 OPENAI_API_KEY 认证
+  provider: "custom"
+
+  # 腾讯云 GLM-5 端点（OpenAI 兼容）
+  base_url: "https://api.lkeap.cloud.tencent.com/coding/v3"
+
+  # Token 限制
+  # max_tokens: 4096
+
+# =============================================================================
+# Terminal 配置
+# =============================================================================
+# 使用 local 后端避免 Docker-in-Docker 问题
+terminal:
+  backend: local
+  timeout: 300
+
+# =============================================================================
+# Context Compression
+# =============================================================================
+compression:
+  enabled: true
+  threshold: 0.5
+  target_ratio: 0.2
+  protect_last: 20
+  protect_first: 3
+
+# =============================================================================
+# Display
+# =============================================================================
+display:
+  personality: "kawaii"
+  reasoning: "off"
+  bell: "off"
