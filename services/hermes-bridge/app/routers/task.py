@@ -89,13 +89,20 @@ async def process_excel(
     excel_request: ExcelTaskRequest = Body(...),
 ):
     """
-    处理 Excel 文件（同步模式）
+    处理任务（同步模式）
+    
+    支持多种任务类型：
+    - Excel 处理：输出 xlsx/csv 格式文件
+    - 数据分析：输出 txt/json 报告或直接回答
+    - 数据提取：输出指定格式文件
+    
+    输出文件保存在 output_dir 目录，格式由任务内容决定。
     
     示例请求：
     ```json
     {
         "file_path": "/app/data/sessions/sess_xxx/uploads/example.xlsx",
-        "task": "替换第一行数据为：员工姓名,所属部门,年龄,入职时间,月薪",
+        "task": "提取产品代码和规格型号，生成汇总表",
         "session_id": "sess_xxx",
         "output_dir": "/app/data/sessions/sess_xxx/outputs"
     }
@@ -132,16 +139,24 @@ async def process_excel_stream(
     excel_request: ExcelTaskRequest = Body(...),
 ):
     """
-    处理 Excel 文件（SSE 流式模式）
+    处理任务（SSE 流式模式）
     
     返回 Server-Sent Events 流，实时推送处理进度。
     
+    输出文件格式根据任务内容自动决定：
+    - xlsx/csv: 数据表格处理
+    - txt/json: 分析报告
+    - 无文件: 查询/分析类任务直接回答
+    
     事件类型：
+    - thinking: Agent 思考过程
+    - tool: 工具准备/执行
+    - tool_result: 工具执行结果
+    - api_call: API 调用信息
+    - response: Agent 响应内容
     - progress: 进度更新
-    - tool: 工具调用
-    - output: 输出内容
     - error: 错误信息
-    - done: 完成
+    - done: 完成（包含 output_file 字段）
     """
     hermes_client: HermesClient = req.app.state.hermes_client
     

@@ -505,11 +505,16 @@ class HermesClient:
             output_dir = f"/app/data/sessions/{session_id}/outputs"
 
         prompt = (
-            f"请处理以下 Excel 文件：\n"
-            f"- 文件路径: {file_path}\n"
+            f"请处理以下任务：\n"
+            f"- 输入文件: {file_path}\n"
             f"- 任务要求: {task}\n"
-            f"- 请将结果保存到: {output_dir}/result.xlsx\n"
-            f"- 如果有多个结果，可以保存为多个文件到 {output_dir}/ 目录"
+            f"- 输出目录: {output_dir}/\n"
+            f"\n"
+            f"说明：\n"
+            f"1. 根据任务要求选择合适的输出格式（xlsx/txt/csv/json等）\n"
+            f"2. 输出文件保存在 {output_dir}/ 目录下\n"
+            f"3. 文件名根据任务内容命名，如：result.xlsx、分析报告.txt、汇总表.csv 等\n"
+            f"4. 如果任务不需要生成文件（如查询、分析），直接回答即可"
         )
 
         return await self.execute_task(prompt)
@@ -526,11 +531,16 @@ class HermesClient:
             output_dir = f"/app/data/sessions/{session_id}/outputs"
 
         prompt = (
-            f"请处理以下 Excel 文件：\n"
-            f"- 文件路径: {file_path}\n"
+            f"请处理以下任务：\n"
+            f"- 输入文件: {file_path}\n"
             f"- 任务要求: {task}\n"
-            f"- 请将结果保存到: {output_dir}/result.xlsx\n"
-            f"- 如果有多个结果，可以保存为多个文件到 {output_dir}/ 目录"
+            f"- 输出目录: {output_dir}/\n"
+            f"\n"
+            f"说明：\n"
+            f"1. 根据任务要求选择合适的输出格式（xlsx/txt/csv/json等）\n"
+            f"2. 输出文件保存在 {output_dir}/ 目录下\n"
+            f"3. 文件名根据任务内容命名，如：result.xlsx、分析报告.txt、汇总表.csv 等\n"
+            f"4. 如果任务不需要生成文件（如查询、分析），直接回答即可"
         )
 
         async for event in self.execute_task_stream(prompt):
