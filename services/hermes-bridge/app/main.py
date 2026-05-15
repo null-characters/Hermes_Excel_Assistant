@@ -118,10 +118,23 @@ async def smoke_test():
         )
 
         if response.success:
+            # 提取实际响应内容（过滤 Hermes 日志）
+            output = response.output or ""
+            # 查找实际响应内容（通常是最后一行非空内容）
+            lines = [l.strip() for l in output.split('\n') if l.strip()]
+            actual_response = "OK"
+            for line in reversed(lines):
+                # 跳过 Hermes 日志行
+                if any(skip in line for skip in ['Query:', 'Initializing', 'API call', 'Token', 'Conversation', 'Hermes', '─', '╭', '╰', '┊', '│']):
+                    continue
+                if line and not line.startswith(('┊', '│', '╭', '╰', '─')):
+                    actual_response = line[:50]
+                    break
+
             return {
                 "success": True,
                 "model": model,
-                "response": response.output[:100] if response.output else "OK"
+                "response": actual_response
             }
         else:
             return {

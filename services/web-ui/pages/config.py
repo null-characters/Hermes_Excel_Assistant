@@ -51,9 +51,9 @@ with col2:
                 result = resp.json()
 
                 if result.get("success"):
-                    st.session_state.smoke_result = ("success", f"✅ 测试通过 - 模型: {result.get('model', '')}，响应: {result.get('response', '')[:50]}")
+                    st.session_state.smoke_result = ("success", f"✅ 测试通过 - 模型: {result.get('model', '')}")
                 else:
-                    st.session_state.smoke_result = ("error", f"❌ 测试失败 - {result.get('error', '未知错误')}: {result.get('detail', '')}")
+                    st.session_state.smoke_result = ("error", f"❌ {result.get('error', '测试失败')}: {result.get('detail', '')}")
             except requests.exceptions.ConnectionError:
                 st.session_state.smoke_result = ("error", "❌ 无法连接到 Bridge 服务，请确保服务已启动")
             except Exception as e:
