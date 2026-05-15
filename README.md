@@ -21,13 +21,33 @@
 
 ## 项目状态
 
+### 阶段划分
+
 | 阶段 | 状态 | 说明 |
 |------|------|------|
-| Phase 1: 基础环境 | ✅ 完成 | Docker/MinIO/Nginx 配置 |
-| Phase 2: File Upload Service | ✅ 完成 | FastAPI 文件上传服务 |
-| Phase 3: Hermes Bridge | ✅ 完成 | 本地桥接服务，REST API 驱动 Agent |
-| Phase 4: 全链路测试 | ✅ 完成 | 本地模式全链路验证通过 |
-| Phase 5: 监控运维 | ✅ 完成 | Prometheus 监控配置 |
+| **Phase 1: PoC 验证** | ✅ 完成 | 技术可行性验证 |
+| **Phase 2: 产品化 MVP** | 🚧 进行中 | Web UI + 安全加固 + 用户测试 |
+
+### Phase 1 完成内容
+
+- ✅ Docker/MinIO/Nginx 基础环境
+- ✅ FastAPI 文件上传服务
+- ✅ Hermes Bridge 本地桥接服务
+- ✅ Hermes Agent + 自定义 LLM 集成
+- ✅ 本地模式全链路验证通过
+- ✅ Prometheus 监控配置
+
+### 路线选择
+
+> **决策日期**: 2026-05-15
+
+| 决策项 | 选择 | 说明 |
+|--------|------|------|
+| 技术路线 | ✅ 本地化部署 | 无需企微权限，降低验证门槛 |
+| 产品化策略 | ✅ 并行推进 | 安全修复 + Web UI 同步开发 |
+| Excel 存储 | ✅ 本地文件系统 | 简化架构，放弃 MinIO |
+| 沙箱方案 | ✅ local + SQLite 隔离 | 会话级数据隔离，路径白名单 |
+| LLM 配置 | ✅ 用户自定义 | 用户自行配置 API Key 和 Provider |
 
 ---
 
@@ -300,9 +320,9 @@ python -m pytest app/tests/ -v
 |------|------|
 | [本地开发指南](./docs/LOCAL_DEV_GUIDE.md) | 快速启动、API 使用、故障排除 |
 | [总体规划](./docs/plan/Hermes_WeCom_Excel_Assistant_MVP.md) | MVP 规划方案 |
-| [任务拆解](./docs/workitems/MVP任务拆解/) | MVP 阶段任务明细 |
+| [Phase 1 任务](./docs/tasks/phase1/) | PoC 阶段任务清单 |
 | [评审报告](./docs/workitems/规划评审分析/) | 双视角评审分析 |
-| [本地化方案评审](./docs/workitems/本地化方案评审报告_汇总.md) | PoC 验证结论与实施路径 |
+| [本地化方案评审](./docs/workitems/本地化方案评审分析/本地化方案评审报告_汇总.md) | PoC 验证结论与实施路径 |
 
 ---
 
