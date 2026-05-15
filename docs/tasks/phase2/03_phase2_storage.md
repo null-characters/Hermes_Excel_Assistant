@@ -123,3 +123,24 @@ async def process_excel(self, file_path: str, task: str, session_id: str):
 **T02-16**: "请更新 hermes_client.py 的 process_excel 方法，将文件路径注入到 prompt 中，让 Agent 可以直接访问文件"
 
 **T02-17**: "请从 docker-compose.yml 中移除 MinIO 服务和相关配置"
+
+---
+
+## ⏱️ 检查点触发
+
+> **本任务线完成后参与 CP2 检查点**
+
+**触发条件**: T02-07 ~ T02-19 全部完成（含架构设计线）
+
+**Review 流程**:
+```
+1. 完成所有任务 → 勾选验收清单
+2. 运行验证测试:
+   - 上传测试文件 → 检查会话目录
+   - 执行处理任务 → 检查 outputs 目录
+   - 下载结果文件 → 验证内容正确
+3. 提交 Review Request → 等待 Reviewer + PM 确认
+4. CP2 通过 → 进入 Web UI 开发
+```
+
+**详见**: [00_phase2_overview.md - CP2 检查点](./00_phase2_overview.md#cp2-架构存储验收-day-3-结束)

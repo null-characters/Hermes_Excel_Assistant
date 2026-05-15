@@ -146,3 +146,24 @@ def validate_prompt(prompt: str) -> bool:
 **T02-09**: "请创建 session_manager.py，实现 create_session(session_id)、delete_session(session_id)、list_sessions() 三个方法"
 
 **T02-10**: "请实现路径白名单校验，确保文件路径只能在 data/sessions/{session_id}/ 目录内"
+
+---
+
+## ⏱️ 检查点触发
+
+> **本任务线完成后参与 CP2 检查点**
+
+**触发条件**: T02-07 ~ T02-12 全部完成 + T02-13 ~ T02-19 完成（存储线）
+
+**Review 流程**:
+```
+1. 完成所有任务 → 勾选验收清单
+2. 运行边界测试:
+   - 测试路径遍历攻击 → 应被拒绝
+   - 测试危险命令注入 → 应被拒绝
+   - 测试会话隔离 → 数据不互通
+3. 提交 Review Request → 等待 Reviewer + PM 确认
+4. CP2 通过 → 进入 Web UI 开发
+```
+
+**详见**: [00_phase2_overview.md - CP2 检查点](./00_phase2_overview.md#cp2-架构存储验收-day-3-结束)

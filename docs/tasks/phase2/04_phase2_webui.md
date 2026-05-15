@@ -202,3 +202,25 @@ web-ui:
 **T02-26**: "请实现侧边栏 LLM 配置页面，用户可以输入 API Key、Base URL、Model，配置保存到 .env 文件"
 
 **T02-28**: "请创建 web-ui 的 Dockerfile，基于 python:3.11-slim，安装 Streamlit，启动 app.py"
+
+---
+
+## ⏱️ 检查点触发
+
+> **本任务线完成后触发 CP3 检查点 + Phase 2 结项**
+
+**触发条件**: T02-20 ~ T02-30 全部完成
+
+**Review 流程**:
+```
+1. 完成所有任务 → 勾选验收清单
+2. 运行验收测试:
+   - docker-compose up → 服务全部启动
+   - 打开 http://localhost:8501 → 界面正常显示
+   - 执行完整用户流程 → 上传 → 处理 → 下载
+3. 邀请 3+ 名文职人员测试 → 收集反馈
+4. 提交 Review Request → 等待 Reviewer + PM + 用户代表确认
+5. CP3 通过 → Phase 2 结项 → 决定是否进入 Phase 3
+```
+
+**详见**: [00_phase2_overview.md - CP3 检查点](./00_phase2_overview.md#cp3-web-ui-验收--phase-2-结项-day-5-结束)
