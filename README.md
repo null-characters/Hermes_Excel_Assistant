@@ -226,7 +226,7 @@ Hermes-WeCom-Assistant/
 ├── .env.example                # 环境变量模板
 ├── README.md                   # 项目说明
 ├── config/
-│   ├── config.yaml             # Hermes 配置
+│   ├── hermes-config.yaml     # Hermes 配置
 │   ├── USER.md                 # Agent 角色设定
 │   └── skills/                 # 技能定义
 ├── services/
@@ -298,6 +298,26 @@ python tests/test_full_chain.py --mode full
 cd services/file-upload
 python -m pytest app/tests/ -v
 ```
+
+---
+
+## 安全警告
+
+> ⚠️ **当前版本为 MVP 阶段，生产环境不可部署**
+
+### 已知安全限制
+
+| 限制项 | 说明 | 风险等级 |
+|--------|------|----------|
+| local 终端无沙箱 | Agent 执行的代码无进程隔离 | 🔴 Critical |
+| 无认证机制 | API 无身份验证 | 🟡 Medium |
+| SQLite 数据隔离仅逻辑隔离 | 路径白名单可被绕过 | 🟡 Medium |
+
+### 生产部署前必须解决
+
+- [ ] 实现 Docker 终端后端或 gVisor 沙箱
+- [ ] 添加 API 认证机制
+- [ ] 实现路径白名单强制校验
 
 ---
 

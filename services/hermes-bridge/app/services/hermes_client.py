@@ -11,6 +11,7 @@ import subprocess
 import logging
 import asyncio
 import os
+import shlex  # T02-02: Prompt 参数转义
 from typing import Optional
 from dataclasses import dataclass
 
@@ -114,14 +115,18 @@ class HermesClient:
     ) -> HermesResponse:
         """在容器中执行命令"""
         
+        # T02-02: Prompt 参数转义，防止命令注入
+        # 使用 shlex.quote() 对 prompt 进行 shell 转义
+        safe_prompt = shlex.quote(prompt)
+        
         # 使用 Hermes Agent 的单次查询模式
         # hermes 在容器中的完整路径
         HERMES_PATH = "/opt/hermes/.venv/bin/hermes"
         
-        # 构建 docker exec 命令
+        # 构建 docker exec 命令（prompt 已转义）
         cmd = [
             "docker", "exec", self.CONTAINER_NAME,
-            HERMES_PATH, "chat", "-q", prompt
+            HERMES_PATH, "chat", "-q", safe_prompt
         ]
         
         try:

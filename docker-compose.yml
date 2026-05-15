@@ -72,7 +72,7 @@ services:
       - ./config:/root/.hermes  # 本地配置（技能等）
       - ./data:/app/data
       - ./data/uploads:/app/uploads
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Docker Socket 已移除 - Agent 不需要 Docker 权限 (T02-01)
       - ./config/hermes-config.yaml:/opt/data/config.yaml:ro  # 覆盖 Hermes 内置配置
     env_file:
       - .env
