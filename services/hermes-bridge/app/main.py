@@ -14,9 +14,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
+import os
+import sys
 
 from app.routers import task
-from app.services.hermes_client import HermesClient
+from app.services.hermes_client import HermesClient, SecurityError
 
 # 配置日志
 logging.basicConfig(
@@ -36,8 +38,13 @@ async def lifespan(app: FastAPI):
     
     # 启动时初始化
     logger.info("初始化 Hermes Bridge Service...")
-    hermes_client = HermesClient()
-    app.state.hermes_client = hermes_client
+    try:
+        hermes_client = HermesClient()
+        app.state.hermes_client = hermes_client
+    except SecurityError as e:
+        logger.critical(f"安全校验失败: {e}")
+        logger.critical("服务启动被拒绝，请检查 HERMES_CONTAINER_NAME 环境变量")
+        sys.exit(1)
     
     yield
     
@@ -52,10 +59,12 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS 配置
+# CORS 配置 - B-06: 从环境变量读取，默认允许所有来源（向后兼容）
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

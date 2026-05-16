@@ -21,6 +21,16 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 
+# B-01 安全修复：容器白名单
+# 硬编码允许执行的容器列表，防止通过环境变量注入恶意容器名
+ALLOWED_CONTAINERS = {"hermes-agent"}
+
+
+class SecurityError(Exception):
+    """安全校验失败"""
+    pass
+
+
 @dataclass
 class HermesResponse:
     """Hermes Agent 响应结果"""
@@ -37,10 +47,20 @@ class HermesClient:
     TIMEOUT = int(os.getenv("HERMES_TIMEOUT", "600"))
     
     def __init__(self):
+        # B-01 安全修复：校验容器名在白名单内
+        if self.CONTAINER_NAME not in ALLOWED_CONTAINERS:
+            raise SecurityError(
+                f"安全错误: 容器 '{self.CONTAINER_NAME}' 不在允许列表中。"
+                f"允许的容器: {ALLOWED_CONTAINERS}"
+            )
         self._container_status = None
     
     def is_available(self) -> bool:
         """检查 Hermes Agent 是否可用"""
+        # B-01 安全修复：运行时双重校验容器名
+        if self.CONTAINER_NAME not in ALLOWED_CONTAINERS:
+            logger.error(f"安全错误: 容器 '{self.CONTAINER_NAME}' 不在白名单内")
+            return False
         try:
             result = subprocess.run(
                 ["docker", "inspect", "-f", "{{.State.Status}}", self.CONTAINER_NAME],

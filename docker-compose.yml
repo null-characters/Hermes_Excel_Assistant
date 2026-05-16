@@ -1,13 +1,21 @@
 # ===========================================
-# Hermes Work Assistant - 本地化方案 (Phase 2)
+# Hermes Work Assistant - 本地化方案 (Phase 3)
 # ===========================================
 # 服务编排配置
 #
 # 核心服务：
 # - hermes-bridge (8646): 任务提交 API，本地 REST 接口
 # - hermes-agent (8645): LLM Agent 核心，通过 docker exec 调用
+# - web-ui (8501): Streamlit 前端，支持多文件上传和结果预览
 # - prometheus (9090): 监控面板
 # - nginx-proxy (80/443): 反向代理（可选）
+#
+# Phase 3 新功能：
+# - CORS 配置：通过 CORS_ORIGINS 环境变量控制
+# - 文件大小限制：MAX_FILE_SIZE_MB 环境变量（默认 50MB）
+# - 批量处理：支持多文件上传和打包下载
+# - 处理模板：预设模板快速处理常见任务
+# - 结果预览：Excel/CSV 表格预览、图片预览
 #
 # 已移除服务（Phase 2 简化）：
 # - minio: 对象存储 → 改用本地文件系统
@@ -57,6 +65,9 @@ services:
       - HERMES_CONTAINER_NAME=hermes-agent
       - HERMES_TIMEOUT=300
       - SESSION_BASE_PATH=/app/data/sessions  # 会话目录
+      # Phase 3 配置
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}  # CORS 允许的源，逗号分隔
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}  # 文件大小限制 (MB)
     depends_on:
       - hermes
     restart: unless-stopped

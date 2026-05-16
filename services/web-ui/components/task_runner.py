@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 
 BRIDGE_API_URL = os.getenv("BRIDGE_API_URL", "http://hermes-bridge:8000")
 
+# T03-06: 文件大小限制
+MAX_FILE_SIZE_MB = int(os.getenv("MAX_FILE_SIZE_MB", "50"))
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
 
 class TaskRunner:
     """任务执行器"""
@@ -31,7 +35,18 @@ class TaskRunner:
         uploaded_file,
         data_path: Path
     ) -> str:
-        """保存上传文件到会话目录"""
+        """保存上传文件到会话目录
+        
+        Raises:
+            ValueError: 文件大小超过限制
+        """
+        # T03-07: 文件大小校验
+        file_size = len(uploaded_file.getbuffer())
+        if file_size > MAX_FILE_SIZE_BYTES:
+            raise ValueError(
+                f"文件大小 {file_size / 1024 / 1024:.1f}MB 超过限制 {MAX_FILE_SIZE_MB}MB"
+            )
+        
         uploads_path = data_path / session_id / "uploads"
         uploads_path.mkdir(parents=True, exist_ok=True)
         
